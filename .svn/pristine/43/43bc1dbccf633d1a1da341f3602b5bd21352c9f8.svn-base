@@ -1,0 +1,126 @@
+package plantadapter.dcgs.impl.dt80;
+
+import java.util.Arrays;
+
+import plantadapter.commands.PortCommand;
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.WriteCommand;
+
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80ChannelDefinition;
+import plantmodel.dt80.DT80ChannelOption;
+import plantmodel.dt80.DT80ChannelOptionList;
+import plantmodel.dt80.DT80SerialEndpoint;
+import plantmodel.dt80.DT80Utils;
+
+import quantities.InformationAmount;
+
+class DT80SerialChannelDefinitionBuilder implements IDT80ChannelDefinitionBuilder {
+	
+	// TODO Parametro Device...
+	
+	public static DT80SerialChannelDefinitionBuilder getReadingInstance(ReadCommand command) {
+		if (!validateCommand(command))
+			throw new IllegalArgumentException();
+		return new DT80SerialChannelDefinitionBuilder(command);
+	}
+	
+	public static DT80SerialChannelDefinitionBuilder getWritingInstance(WriteCommand command) {
+		if (!validateCommand(command))
+			throw new IllegalArgumentException();
+		return new DT80SerialChannelDefinitionBuilder(command);
+	}
+	
+	private static boolean validateCommand(PortCommand command) {
+		return command.getTargetPort() instanceof DT80SerialEndpoint;
+	}
+	
+	private PortCommand command;
+	
+	private DT80SerialChannelDefinitionBuilder(PortCommand command) {
+		this.command = command;
+	}
+	
+	// Inutile in quanto il channel number è memorizzato direttamente nell'Endpoint...
+	
+	/*
+	private int getChannelNumber() {
+		
+		// TODO La seguente cosa sarebbe da fare esternamente, ovvero al modulo del DT80
+		// dovrebbero arrivare direttamente comandi diretti ad una sua porta
+		
+		//// Individuazione Endpoint Output
+		// TODO da eliminare quando si cambierà la politica di gestione Endpoint comandi
+		Endpoint targetPort = this.command.getTargetPort();
+
+		//\\ Individuazione Endpoint Output
+		
+		if (targetPort.getID().equalsIgnoreCase("SERSEN_PORT"))
+			return 1; // 1SERIAL
+		else if (targetPort.getID().equalsIgnoreCase("HOST_RS232_PORT"))
+			return 2; // 2SERIAL
+		else if (targetPort.getID().equalsIgnoreCase("USB_PORT"))
+			return 3; // 3SERIAL
+		else
+			throw new IllegalStateException();
+	}
+	*/
+	
+	private DT80ChannelDefinition buildWriteCommand() {
+
+		///// Valore da Scrivere
+		byte[] outBytes = ((InformationAmount)((WriteCommand)command).getValue()).getBytes();
+		
+		int i = 0;
+		
+		while (i < outBytes.length) {
+			// I caratteri non stambabili vengono sostituiti (es. \n -> \013)
+			for (; i < outBytes.length; i++) {
+				if (outBytes[i] < 31 || outBytes[i] > 254) {
+					
+					byte[] begin = Arrays.copyOf(outBytes, i);
+					byte[] end = Arrays.copyOfRange(outBytes, i + 1, outBytes.length);
+					String str = "" + (int)outBytes[i];
+					
+					if (str.length() == 1) str = "00" + str;
+					if (str.length() == 2) str = "0" + str;
+					
+					byte[] newBytes = new byte[4];
+					
+					newBytes[0] = '\\';
+					newBytes[1] = (byte)str.charAt(0);
+					newBytes[2] = (byte)str.charAt(1);
+					newBytes[3] = (byte)str.charAt(2);
+					
+					outBytes = new byte[begin.length + newBytes.length + end.length];
+					
+					for (int j = 0; j < outBytes.length; j++) {
+						if (j < begin.length) outBytes[j] = begin[j];
+						else if (j < begin.length + newBytes.length) outBytes[j] = newBytes[j - begin.length];
+						else outBytes[j] = end[j - begin.length - newBytes.length];
+					}
+				}
+			}
+		}
+		
+		String channelOption = "\"{" + new ASCIIString(outBytes).toString() + "}\"";
+		
+		return new DT80ChannelDefinition(((DT80SerialEndpoint)this.command.getTargetPort()).getChannelNumber(), DT80Utils.Info.ChannelTypes.SERIAL, 
+				new DT80ChannelOptionList(new DT80ChannelOption(channelOption)));
+	}
+	
+	private DT80ChannelDefinition buildReadCommand() {
+		// TODO
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public DT80ChannelDefinition buildChannelDefinition() {
+		if (this.command instanceof WriteCommand)
+			return this.buildWriteCommand();
+		else if (this.command instanceof ReadCommand)
+			return this.buildReadCommand();
+		else
+			throw new IllegalStateException();
+	}
+}

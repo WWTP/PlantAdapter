@@ -1,0 +1,8 @@
+package plantadapter;
+
+import plantadapter.results.Result;
+
+public interface IInputCallbackReceiver {
+	
+	public void sendInput(Result result);
+}

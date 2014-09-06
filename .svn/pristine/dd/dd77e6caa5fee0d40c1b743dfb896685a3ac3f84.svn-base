@@ -1,0 +1,32 @@
+package plantadapter.parsers.impl;
+
+import plantadapter.commands.ReadCommand;
+import plantadapter.results.SingleResult;
+import plantmodel.Device;
+import plantmodel.IDeviceIOData;
+
+public class Adam5000InputParser extends AbstractInputParser {
+
+	public Adam5000InputParser(Device device) { // TODO Usa ADAMDevice
+		super(device);
+		// TODO Auto-generated constructor stub
+	}
+
+	@Override
+	protected IDeviceIOData convertToDeviceIODataType(IDeviceIOData input) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	protected SingleResult parse(ReadCommand cmd, IDeviceIOData token) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	protected IDeviceIOData[] tokenizeInput(IDeviceIOData input) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+}

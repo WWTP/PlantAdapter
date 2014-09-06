@@ -1,0 +1,434 @@
+package plantmodel;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.measure.quantity.Quantity;
+
+public abstract class Device {
+	
+	// Static Fields
+	
+	private static Map<String, Device> devices = new HashMap<String, Device>();
+	
+	// Static Methods
+	
+	public static Device fromID(String deviceID) {
+		return devices.get(deviceID.toUpperCase());
+	}
+	
+	public static Device[] getSystemDevices() {
+		return devices.values().toArray(new Device[0]);
+	}
+	
+	public static Device[] getRootDevices() {
+		List<Device> hostConnectedDevices = new LinkedList<Device>();
+		for (Device dev : devices.values()) {
+			if (dev.hasHostConnections()) hostConnectedDevices.add(dev);
+		}
+		return hostConnectedDevices.toArray(new Device[0]);
+	}
+	
+	// Instance Fields
+	
+	private final String id;
+	private final String type;
+	private final String manufacturer;
+	private final String model;
+	private final String series;
+	private final String serialNumber;
+	
+	private final Endpoint[] endpoints;
+	// Cache
+	private final List<Connection> deviceConnections; // TODO Modellare vincoli fra Connessioni ed Endpoints
+	private final List<Connection> hostConnections;
+	
+	private final Class<? extends IDeviceIOData> ioDataType; // TODO Ha senso qui ?
+	
+	// Protected Constructors
+	
+	protected Device(String id, String type, String manufacturer, String model, String series, String serialNumber,
+			Endpoint[] endpoints, Class<? extends IDeviceIOData> ioDataType) {
+		this.id = id;
+		this.type = type;
+		this.manufacturer = manufacturer;
+		this.model = model;
+		this.series = series;
+		this.serialNumber = serialNumber;
+		this.endpoints = endpoints;
+		this.ioDataType = ioDataType;
+		this.deviceConnections = new ArrayList<Connection>();
+		this.hostConnections = new ArrayList<Connection>();
+		// Aggiunge il dispositivo alla mappa dei dispositivi del sistema
+		if (devices.containsKey(id.toUpperCase()))
+			throw new IllegalArgumentException("ID deve essere univico per tutti i dispositivi.");
+		devices.put(id.toUpperCase(), this);
+	}
+	
+	// Accessors
+	
+	public String getID() {
+		return this.id;
+	}
+	
+	public String getType() {
+		return this.type;
+	}
+	
+	public String getManufacturer() {
+		return this.manufacturer;
+	}
+	
+	public String getModel() {
+		return this.model;
+	}
+	
+	public String getSeries() {
+		return this.series;
+	}
+	
+	public String getSerialNumber() {
+		return this.serialNumber;
+	}
+	
+	// Endpoints
+	
+	public Endpoint[] getEndpoints() {
+		return this.endpoints.clone();
+	}
+	
+	public Endpoint getEndpointById(String endpointID) {
+		for (Endpoint e : this.endpoints) {
+			if (e.getID().equalsIgnoreCase(endpointID))
+				return e;
+		}
+		return null;
+	}
+	
+	// Connections
+	
+	public Connection[] getConnections() {
+		List<Connection> cnnList = new LinkedList<Connection>();
+		for (Connection cnn : this.getDeviceConnections()) {
+			cnnList.add(cnn);
+		}
+		for (Connection cnn : this.getHostConnections()) {
+			cnnList.add(cnn);
+		}
+		return cnnList.toArray(new Connection[0]);
+	}
+	
+	/**
+	 * Restituisce le <code>Connection</code> tra Device (non è compreso il SOLO caso di connessione Server-Device)
+	 * @return
+	 */
+	public Connection[] getDeviceConnections() { // Ipotizza che le Connessioni non possano cambiare (altrimenti opportuno Pattern ad Eventi)
+		if (this.deviceConnections.size() == 0)
+			this.initializeDeviceConnections();
+		return this.deviceConnections.toArray(new Connection[0]);
+	}
+	
+	/**
+	 * Restituisce le <code>Connection</code> tra Server e Device
+	 * @return
+	 */
+	public Connection[] getHostConnections() {
+		if (this.hostConnections.size() == 0)
+			this.initializeHostConnections();
+		return this.hostConnections.toArray(new Connection[0]);
+	}
+	
+	// IODataType
+	
+	public Class<? extends IDeviceIOData> getIODataType() {
+		return this.ioDataType;
+	}
+	
+	// Private Instance Methods
+	
+	private void initializeDeviceConnections() { // Ipotizza che le Connessioni non possano cambiare (altrimenti opportuno Pattern ad Eventi)
+		for (Endpoint e : this.endpoints) {
+			Connection cnn = Connection.fromEndpoint(e);
+			if (cnn != null && cnn.getMasterEndpoint() != null) // Salta gli Endpoint non connessi
+				this.deviceConnections.add(cnn);
+		}
+	}
+	
+	private void initializeHostConnections() { // Ipotizza che le Connessioni non possano cambiare (altrimenti opportuno Pattern ad Eventi)
+		for (Endpoint e : this.endpoints) {
+			Connection cnn = Connection.fromEndpoint(e);
+			// TODO Notare che questa è una convenzione (di plantadapter o di plantmodel?)
+			if (cnn != null && cnn.getMasterEndpoint() == null)  // Salta gli Endpoint non connessi
+				this.hostConnections.add(cnn);
+		}
+	}
+	
+	// Public Instance Methods
+	
+	// Connections
+	
+	public Connection[] getConnectionsAsMaster() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Connection> cnnsAsMaster = new LinkedList<Connection>();
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.getMasterDevice() == this)
+				cnnsAsMaster.add(cnn);
+		}
+		return cnnsAsMaster.toArray(new Connection[0]);
+	}
+	
+	public Connection[] getConnectionsAsSlave() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Connection> cnnsAsSlave = new LinkedList<Connection>();
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.getSlaveDevice() == this)
+				cnnsAsSlave.add(cnn);
+		}
+		return cnnsAsSlave.toArray(new Connection[0]);
+	}
+	
+	// Endpoints
+	
+	public Endpoint[] getConnectedEndpoints() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		Endpoint[] connectedEndpoints = new Endpoint[this.getConnections().length];
+		for (int i = 0; i < this.getConnections().length; i++) {
+			Connection cnn = this.getConnections()[i];
+			connectedEndpoints[i] = cnn.getOtherEndpoint(this);
+		}
+		return connectedEndpoints;
+	}
+
+	/**
+	 * <p>Restituisce gli <code>Endpoint</code> ai quali questo dispositivo è connesso come <i>slave</i>.</p>
+	 * @return
+	 */
+	public Endpoint[] getMasterEndpoints() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Endpoint> masterEp = new LinkedList<Endpoint>();
+		for (Endpoint e : this.getEndpoints()) {
+			if (e.getConnectionsAsMaster().length > 0)
+				masterEp.add(e);
+		}
+		return masterEp.toArray(new Endpoint[0]);
+	}
+
+	/**
+	 * <p>Restituisce gli <code>Endpoint</code> ai quali questo dispositivo è connesso come <i>master</i>.</p>
+	 * @return
+	 */
+	public Endpoint[] getSlaveEndpoints() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Endpoint> slaveEp = new LinkedList<Endpoint>();
+		for (Endpoint e : this.getEndpoints()) {
+			if (e.getConnectionsAsSlave().length > 0)
+				slaveEp.add(e);
+		}
+		return slaveEp.toArray(new Endpoint[0]);
+	}
+	
+	/**
+	 * Ritorna gli endpoint con preferred Quantity pari a quella passata
+	 * @param class1
+	 * @return
+	 */
+	public Endpoint[] getEndpoints(Class<? extends Quantity> q) {
+		// TODO Cache
+		List<Endpoint> endpoints = new ArrayList<Endpoint>();
+		
+		for(Endpoint e : this.endpoints)
+			if(e.getPreferredInterface().getQuantity().equals(q))
+				endpoints.add(e);
+		return endpoints.toArray(new Endpoint[0]);
+	}
+	
+	// EndpointInterfaces
+	
+	public EndpointInterface[] getEndpointInterfaces() {
+		List<EndpointInterface> eis = new ArrayList<EndpointInterface>();
+		for (Endpoint e : this.getEndpoints()) {
+			eis.addAll(Arrays.asList(e.getInterfaces()));
+		}
+		return eis.toArray(new EndpointInterface[0]);
+	}
+	
+	public EndpointInterface[] getEndpointLogicalInterfaces() {
+		List<EndpointInterface> eis = new ArrayList<EndpointInterface>();
+		for (Endpoint e : this.getEndpoints()) {
+			eis.addAll(Arrays.asList(e.getLogicalInterfaces()));
+		}
+		return eis.toArray(new EndpointInterface[0]);
+	}
+	
+	public EndpointInterface[] getEndpointPhysicalInterfaces() {
+		List<EndpointInterface> eis = new ArrayList<EndpointInterface>();
+		for (Endpoint e : this.getEndpoints()) {
+			eis.addAll(Arrays.asList(e.getPhysicalInterfaces()));
+		}
+		return eis.toArray(new EndpointInterface[0]);
+	}
+	
+	public EndpointInterface[] getEndpointNativeInterfaces(Endpoint e) {
+		return e.getPhysicalInterfaces();
+	}
+	
+	public EndpointInterface[] getEndpointNativeInterfaces(Endpoint e, Class<? extends Quantity> q) {
+		return e.getPhysicalInterfacesForQuantity(q);
+	}
+	
+	public EndpointInterface getEndpointPreferredInterface(Endpoint e) {
+		return e.getPreferredInterface();
+	}
+	
+	public void setEndpointPreferredInterface(Endpoint e, EndpointInterface ei) {
+		e.setPreferredInterface(ei);
+	}
+	
+	// Devices
+	
+	public Device[] getConnectedDevices() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		Device[] connectedDevices = new Device[this.getDeviceConnections().length]; // TODO Suppone che la connessione all'Host sia l'unica...
+		for (int i = 0; i < this.deviceConnections.size(); i++) {
+			Connection cnn = this.deviceConnections.get(i);
+			connectedDevices[i] = cnn.getOtherDevice(this);
+		}
+		return connectedDevices;
+	}
+	
+	/**
+	 * <p>Restituisce i <code>Device</code> ai quali questo dispositivo è connesso come <i>slave</i>.</p>
+	 * @return
+	 */
+	public Device[] getMasterDevices() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		Connection[] connectionsAsSlave = this.getConnectionsAsSlave();
+		Device[] connectedDevices = new Device[connectionsAsSlave.length];
+		int i = 0;
+		for(Connection connection : connectionsAsSlave)
+			connectedDevices[i++] = connection.getMasterDevice();
+		return connectedDevices;
+	}
+	
+	/**
+	 * <p>Restituisce i <code>Device</code> ai quali questo dispositivo è connesso come <i>master</i>.</p>
+	 * @return
+	 */
+	public Device[] getSlaveDevices() {
+		// TODO Introdurre Cache se connessioni sono statiche
+		Connection[] connectionsAsMaster = this.getConnectionsAsMaster();
+		Device[] connectedDevices = new Device[connectionsAsMaster.length];
+		int i = 0;
+		for(Connection connection : connectionsAsMaster)
+			connectedDevices[i++] = connection.getSlaveDevice();
+		return connectedDevices;
+	}
+	
+	// TODO Valutare EndpointNotFoundException/restituzione null (nota: metodi riferiti a Endpoint del dispositivo corrente)
+	
+	public Connection[] getConnections(Endpoint endpoint) {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Connection> endpointConnections = new ArrayList<Connection>(this.getConnections().length);
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.includes(endpoint))
+				endpointConnections.add(cnn);
+		}
+		return endpointConnections.toArray(new Connection[0]);
+	}
+	
+	public Endpoint[] getConnectedEndpoints(Endpoint endpoint) {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Endpoint> connectedEndpoints = new ArrayList<Endpoint>(this.getConnections().length);
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.includes(endpoint))
+				connectedEndpoints.add(cnn.getOtherEndpoint(endpoint));
+		}
+		return connectedEndpoints.toArray(new Endpoint[0]);
+	}
+	
+	public Device[] getConnectedDevices(Endpoint endpoint) {
+		// TODO Introdurre Cache se connessioni sono statiche
+		List<Device> connectedDevices = new ArrayList<Device>(this.getConnections().length);
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.includes(endpoint))
+				connectedDevices.add(cnn.getOtherDevice(endpoint));
+		}
+		return connectedDevices.toArray(new Device[0]);
+	}
+
+	// Predicati
+	
+	public boolean contains(Endpoint endpoint) {
+		for (Endpoint e : this.endpoints) {
+			if (e == endpoint) return true;
+		}
+		return false;
+	}
+	
+	public boolean isConnectedTo(Device device) {
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.includes(device)) return true;
+		}
+		return false;
+	}
+	
+	public boolean isConnectedTo(Endpoint endpoint) {
+		for (Connection cnn : this.getConnections()) {
+			if (cnn.includes(endpoint)) return true;
+		}
+		return false;
+	}
+	
+	public boolean isMasterOf(Device device) {
+		for (Connection cnn : this.getConnectionsAsMaster()) {
+			if (cnn.isSlave(device)) return true;
+		}
+		return false;
+	}
+	
+	public boolean isMasterOf(Endpoint endpoint) {
+		for (Connection cnn : this.getConnectionsAsMaster()) {
+			if (cnn.isSlave(endpoint)) return true;
+		}
+		return false;
+	}
+	
+	public boolean isSlaveOf(Device device) {
+		for (Connection cnn : this.getConnectionsAsSlave()) {
+			if (cnn.isMaster(device)) return true;
+		}
+		return false;
+	}
+	
+	public boolean isSlaveOf(Endpoint endpoint) {
+		for (Connection cnn : this.getConnectionsAsSlave()) {
+			if (cnn.isMaster(endpoint)) return true;
+		}
+		return false;
+	}
+	
+	// Connections
+	
+	public boolean hasConnections() {
+		return this.getConnections().length > 0;
+	}
+	
+	public boolean hasDeviceConnections() {
+		return this.getDeviceConnections().length > 0;
+	}
+	
+	public boolean hasHostConnections() {
+		return this.getHostConnections().length > 0;
+	}
+	
+	// Object
+	
+	@Override
+	public String toString() {
+		return this.getID();
+	}
+}

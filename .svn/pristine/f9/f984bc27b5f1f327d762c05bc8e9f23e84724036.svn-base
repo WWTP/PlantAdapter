@@ -1,0 +1,13 @@
+package plantmodel;
+
+import javax.measure.quantity.Quantity;
+import javax.measure.unit.Unit;
+
+public class DigitalEndpointInterface extends IEndpointInterface {
+	
+	// TODO public DigitalEndpointInterface(Class<? extends Quantity> quantity, DigitalUnit<? extends DigitalQuantity> unit) {
+	public DigitalEndpointInterface(Class<? extends Quantity> quantity, Unit<? extends Quantity> unit) {
+		super(quantity, unit);
+	}
+
+}

@@ -1,0 +1,20 @@
+package plantmodel.dt80;
+
+import plantmodel.EndpointInterface;
+
+public class DT80SerialEndpoint extends DT80Endpoint {
+	
+	// Constructors
+	
+	public DT80SerialEndpoint(String id, EndpointInterface[] physicalInterfaces, EndpointInterface preferredInterface, int channelNumber) {
+		super(id, physicalInterfaces, preferredInterface, channelNumber);
+	}
+	
+	public DT80SerialEndpoint(String id, EndpointInterface preferredInterface, int channelNumber) {
+		this(id, new EndpointInterface[] { preferredInterface }, preferredInterface, channelNumber);
+	}
+	
+	public DT80SerialEndpoint(String id, EndpointInterface[] physicalInterfaces, int channelNumber) {
+		this(id, physicalInterfaces, null, channelNumber);
+	}
+}

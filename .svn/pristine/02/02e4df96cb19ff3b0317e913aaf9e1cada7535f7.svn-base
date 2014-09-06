@@ -1,0 +1,120 @@
+package plantadapter;
+
+import java.lang.reflect.Constructor;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import plantadapter.annotations.CommandInfo;
+
+import plantadapter.commands.BatchCommand;
+import plantadapter.commands.Command;
+import plantadapter.commands.CommandDiagnosticCommand;
+import plantadapter.commands.CommandsDiagnosticCommand;
+import plantadapter.commands.DeviceCommand;
+import plantadapter.commands.ScheduleDefinitionCommand;
+import plantadapter.commands.ScheduleSubscriptionCommand;
+import plantadapter.communication.ISink;
+import plantadapter.excpts.CommandFailureException;
+
+import utils.refl.ReflectionHelper;
+import utils.refl.filters.HasAnnotationTypeFilter;
+
+class PlantCommandRecognizer implements ISink<Command> {
+	
+	private static Map<Class<?>, CommandInfo> knownCommandClasses; // TODO Class<? extends Command>
+	
+	/* Mappa d'appoggio in caso la reflection fallisca e relativo metodo di accesso */
+	
+	private static Map<Class<?>, CommandInfo> cmdClassesInfoMap;
+	
+	private static void buildClassesInfoMap(Class<?> c) {
+		
+		cmdClassesInfoMap = new HashMap<Class<?>, CommandInfo>();
+		
+		cmdClassesInfoMap.put(BatchCommand.class, BatchCommand.class.getAnnotation(CommandInfo.class));
+		cmdClassesInfoMap.put(CommandDiagnosticCommand.class, CommandDiagnosticCommand.class.getAnnotation(CommandInfo.class));
+		cmdClassesInfoMap.put(CommandsDiagnosticCommand.class, CommandsDiagnosticCommand.class.getAnnotation(CommandInfo.class));
+		cmdClassesInfoMap.put(DeviceCommand.class, DeviceCommand.class.getAnnotation(CommandInfo.class));
+		cmdClassesInfoMap.put(ScheduleDefinitionCommand.class, ScheduleDefinitionCommand.class.getAnnotation(CommandInfo.class));
+		cmdClassesInfoMap.put(ScheduleSubscriptionCommand.class, ScheduleSubscriptionCommand.class.getAnnotation(CommandInfo.class));
+	}
+	
+	private CommandInfo getCmdInfoForClass(Class<?> c) {
+		CommandInfo i = knownCommandClasses.get(c);
+		
+		if (i == null) {
+			if (cmdClassesInfoMap == null) buildClassesInfoMap(c);
+			i = cmdClassesInfoMap.get(c);
+		}
+		
+		return i; 
+	}
+	
+	/* */
+	
+	static 
+	{
+		ReflectionHelper reflector = new ReflectionHelper(Configuration.COMMANDS_PACKAGES); 
+		HasAnnotationTypeFilter filter = new HasAnnotationTypeFilter(CommandInfo.class);
+		// TODO DerivedClassFileFilter
+		Set<Class<?>> classes = reflector.getTypes(filter);
+		
+		knownCommandClasses = new HashMap<Class<?>, CommandInfo>();
+		
+		for (Class<?> commandType : classes) {
+			knownCommandClasses.put(commandType, commandType.getAnnotation(CommandInfo.class));
+		}
+	}
+	
+	private PlantAdapter plantAdapter;
+	
+	private Map<Class<?>, ISink<Command>> commandExecutors;
+	
+	public PlantCommandRecognizer(PlantAdapter plantAdapter) {
+		this.plantAdapter = plantAdapter;
+		this.commandExecutors = new HashMap<Class<?>, ISink<Command>>();
+	}
+	
+	private ISink<Command> getExecutor(CommandInfo info) {
+		
+		ISink<Command> executor = this.commandExecutors.get(info.commandExecutorClass());
+		
+		if (executor == null) {
+			try 
+			{
+				Constructor<? extends ISink<Command>> executorConstructor = info.commandExecutorClass().getConstructor(PlantAdapter.class); // Nota: importante modificare anche qui se cambi il parametro del costruttore.
+				executor = executorConstructor.newInstance(this.plantAdapter);
+				this.commandExecutors.put(info.commandExecutorClass(), executor);
+			} 
+			catch (Exception e) {
+				throw new RuntimeException(); // TODO
+			}
+		}
+		
+		return executor;
+	}
+	
+	@Override
+	public void put(Command cmd) throws IllegalStateException, CommandFailureException {
+		
+		try 
+		{
+			this.getExecutor(getCmdInfoForClass(cmd.getClass())).put(cmd);
+		} 
+		catch (Exception e) {
+			// TODO Verificare un modo per limitare le eccezioni (!)
+		}
+		
+		/*
+		AbstractExecutor<Command> executor = (AbstractExecutor<Command>) this.getExecutor(knownCommandClasses.get(cmd.getClass())); // TODO
+		
+		if (executor == null)
+			throw new IllegalStateException(); // TODO
+		
+		executor.setItem(cmd);
+		executor.execute();
+		*/
+	}
+}

@@ -1,0 +1,12 @@
+package quantities;
+
+public class BinaryAmount extends DigitalAmount implements IAmount {
+	
+	public BinaryAmount(boolean level) {
+		super(level ? 1 : 0, BinaryQuantity.QUANTITY);
+	}
+	
+	public BinaryAmount(int level) {
+		super(level, BinaryQuantity.QUANTITY);
+	}
+}

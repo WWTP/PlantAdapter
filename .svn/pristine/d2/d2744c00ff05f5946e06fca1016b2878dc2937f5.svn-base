@@ -1,0 +1,32 @@
+package plantadapter.dcgs.impl;
+
+import plantadapter.commands.DeviceCommand;
+import plantadapter.commands.WriteCommand;
+import plantadapter.dcgs.IDeviceCommandBuilder;
+import plantadapter.dcgs.impl.adam.Adam5000WriteCommandBuilder;
+
+import plantmodel.adam.Adam5000Device;
+
+public class Adam5000DeviceCommandGenerator extends
+		SequentialDeviceCommandGenerator<Adam5000Device> {
+
+	public Adam5000DeviceCommandGenerator(Adam5000Device associatedDevice) {
+		super(associatedDevice);
+	}
+	
+	@Override
+	public IDeviceCommandBuilder getCommandBuilder(DeviceCommand command) {
+		if(command instanceof WriteCommand)
+			return new Adam5000WriteCommandBuilder(super.getDevice(), (WriteCommand)command);
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean hasInputParser() {
+		// TODO E' importante definire bene le politiche con le quali questa informazione
+		// viene utilizzata (problemi relativi alla costruzione dell'albero, dovuti anche
+		// all'utilizzo degli adapter per inserire i comandi con porta cambiata all'interno
+		// dei DCG) - per ora TENERE A FALSE.
+		return false;
+	}
+}

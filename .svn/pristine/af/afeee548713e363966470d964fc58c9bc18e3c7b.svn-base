@@ -1,0 +1,115 @@
+NOTE
+
+Nota importante: in realtà nei DCG ora non c'è più
+bisogno di memorizzare il Device a cui sono associati
+in quanto è per forza quello indicato dal comando!
+
+PLANT ADAPTER
+
+BUGS
+
+COSE DA DEFINIRE
+
+- Generazione dinamica degli ID dei comandi (considerare
+tutte le problematiche legate ai comandi innestati di
+Batch e Timed);
+- possibilità di "condivisione" dei devices tra gli impianti;
+
+- Adam: perché Endpoint diversi per tensione e corrente 
+e non diverse Interfacce?
+
+TODO
+
+- eseguire unlog sui comandi (o anche per semplicita temporanemente
+eliminare in modo automatico quelli più vecchi, onde evitare di riempire
+la memoria) - fattorizzare con classe base per operazioni di routine;
+- sequenzializzazione dei comandi inviati a PlantAdapter (nella coda
+più esterna - inserimento è in DefaultPlantAdapter) al fine di garantire
+l'ordine anche in caso di comandi introdotti da moduli del PlantAdapter stesso;
+- migliorare il modello, rendendo le associazioni veramente
+diretta tra le classi (al momento si sfruttano le mappe statiche
+delle classi Device, Endpoint etc.). Implementare associazione
+biunivoca fra Endpoint e Device; NOTARE CHE L'UTILIZZO DELLE MAPPE
+STATICHE IMPEDISCE DI AVERE STESSO ID PER DISPOSITIVI IN PLANT DIVERSI
+- definire bene quando usare DeviceCommand e PortCommand nella parte di
+generazione dei comandi/treebuilder - inrealtà tutti PortCommand;
+- gestione corretta degli errori con invio ai callback receiver. SEMPRE PIU' IMPORTANTE
+MAN MANO CHE SI ARRIVA IN "PRODUZIONE" (il software deve essere in grado di segnalare
+se qualcosa non va, senza crashare - e.g. rottura di canali di comunicazione, mancata
+ricezione dei risultati di letture e di conferme sulla ricezione di comandi di lettura
+e scrittura);
+- separare il modello (interfaccia IPlant) dalle cose specifiche del PlantAdapter (e.g.
+vari riferimenti che servono internamente - da fornire semplicemente attraverso un riferimento
+a PlantAdapter fintanto che non si trova una soluzione alternativa che consenta di non mostrare
+queste risorse all'esterno...);
+- per il CommandLogger, una soluzione può essere quella di incapsulare i comandi in strutture
+dati contenenti i loro CallbackReceiver (ed eventuali altre informazioni);
+- utilizzo di EndpointInterface anche per la parte di attuazione
+(uso di funzioni fittizie per verificare il funzionamento - link tra
+livello di corrente e rpm/portata delle pompe);
+- usare PortCommand invece di DeviceCommand nella parte di generazione comandi per i dispositivi,
+ossia il DeviceCommandExecutor (gli StatusCommand sono ad un livello intermedio);
+- sistemare e rendere omogenea tutta la parte DCG e modello sull'ADAM;
+- l'approccio utilizzato per fare il LastValueReadBackCommand dell'Adam mette
+due dubbi principali: 1) scompare la connessione fra il comando inviato dall'utente
+e quello effettivamente usato per implementarlo (il risultato ricevuto risulta
+essere quello che effettivamente è, cioè una lettura da una seriale); 2) alla lettura
+di un DataAmount - specificato come tipo di valore letto - corrisponde un risultato in
+corrente (AnalogueAmount);
+- concetto di "comando sorgente" come comando per implementare il quale altri comandi
+sono stati generati e inviati, da utilizzare ad esempio dagli input parser specifici
+dei dispositivi per determinare il tipo di valori restiuti etc. - per gli altri moduli
+sono ReadCommand normali (uso ereditarietà) ma assumono valori specifi per i "pari";
+- definire il concetto di "enpoint di controllo" e il modo per individuarlo
+(nota: hard-coded in PlantAdamStatusCommandExecutor);
+- sistemare la gestione delle schedules, eliminando le dipendenze
+dirette a DT80Schedule e il DT80 (attraverso l'implementazione di
+DeviceScheduledOperatione ScheduleSuppliareDevice). Usa adapters e
+rivedi l'utilità dei concetti;
+- migliorare struttura a livelli (accesso a
+Command Logger, Communication Manager,
+RequestMailboxFactory, ...);
+es: PendingRequestMailbox (al momento il fatto che il riferimento sia cablato nel codice di DT80ReadResponseHandler obbliga
+a modificare il file nei test).
+- migliorare situazioni di dipendenze fra i moduli
+(ciascuno deve essere il più possibile autocontenuto
+e fornire interfaccia basata su astrazioni);
+- DCG: uniformare gestione dei comandi diretti ai dispositivi radice;
+- prevedere che dei moduli specifici dei dispositivi
+compiano delle operazioni allo startup (ad esempio per
+impostare correttamente i dispositivi). Introdurre anche la possibilità
+di bloccare certi comandi o inviare warning (?);
+- ragionare sulla differenziazione fra timed e schedules;
+- Sistemare CommandLogger e valutare la sua funzione;
+- l'espressività del fixed format del DT80 permette di scartare in modo semplice 
+(vedi DT80InputRecognizer.java) tutti i dati che non sono di interesse (ad esempio 
+posso discriminare immediatamente il record che restituisce lo stato della lettura 
+effettuata dalla porta seriale da un record contenente dati), però non è detto che tutti 
+i dispositivi abbiano un output così espressivo: in generale potrebbe occorrere una maggiore 
+conoscenza dei comandi effettivamente inviati in modo da poter associare ad essi tutti i risultati 
+ottenuti e poter conservare solo quelli significativi.
+
+TODO SECONDARI
+
+- Sistemare quantities, amount digitali e InformationAmount;
+- gestione maschere per comandi che non prevedano la lettura esplicitamente
+(ad esempio invio di comando come dato grezzo al DT80) o in alternativa
+implementare correttamente un comando di lettura ad esso corrispondente);
+- DT80Device deve controllare se gli ID delle schedule aggiunte sono disponibili,
+lanciando un'eccezione altrimenti;
+- consistenza fra un DT80Device e una schedule ad esso riferita (bidireazionalità?);
+- verificare uso di \r e \n nei DCG (non è detto che servano entrambi
+per il DT80) ed eventuali bug nei test dovuti al particolare
+significato che hannno per il sistema operativo;
+- Togli dipendenza DT80 da PlantScheduleDefinitionCommandExecutor.java
+(al momento la definizione delle schedules non è effettivamente implementata,
+vedere qual'è l'approccio giusto per farlo);
+
+IDEE A CASO
+
+- Realizzazione di una interfaccia di controllo, ad esempio per ogni sensore si può
+associare una label con il valore dell'ultimo campionamento, più altri eventuali
+dati ricavabili da analisi statistiche dei dati (magari personalizzabili - in aggiunta
+in futuro anche andamenti grafici). Per gli attuatori si potrebbero usare degli slider
+che permettano di andare dallo 0 al massimo (per controlli "analogici") e pulsanti/slider
+con pochi livelli per controlli binari o digitiali a più livelli.

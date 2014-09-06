@@ -1,0 +1,44 @@
+package plantadapter.parsers;
+
+import java.lang.reflect.Modifier;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import plantadapter.Configuration;
+import plantadapter.annotations.DeviceInfo;
+import plantmodel.Device;
+
+import utils.refl.ReflectionHelper;
+import utils.refl.filters.SubClassTypeFilter;
+
+public class InputParserFactory {
+	
+	private static Map<Class<? extends Device>, Class<? extends IInputParser>> typesMap = 
+			new HashMap<Class<? extends Device>, Class<? extends IInputParser>>();
+	
+	static
+	{
+		ReflectionHelper deviceReflector = new ReflectionHelper(Configuration.DEVICES_PACKAGES);
+		
+		for (Class<? extends Device> devType : deviceReflector.getTypes(new SubClassTypeFilter<Device>(Device.class))) {
+			if (!Modifier.isAbstract(devType.getModifiers())) { // TODO AbstractClassTypeFilter...
+				DeviceInfo devInfo = devType.getAnnotation(DeviceInfo.class);
+				if (devInfo != null)
+					typesMap.put(devType, devInfo.deviceInputParserClass());
+			}
+		}
+	}
+
+	private InputParserFactory() {/* static class */ }
+	
+	public static IInputParser getInputParser(Device device) {
+		try 
+		{
+			return typesMap.get(device.getClass()).getConstructor(device.getClass()).newInstance(device);
+		} 
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+}

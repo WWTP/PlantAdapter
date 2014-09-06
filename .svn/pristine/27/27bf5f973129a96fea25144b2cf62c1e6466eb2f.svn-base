@@ -1,0 +1,33 @@
+package plantmodel.dt80;
+
+import plantmodel.Endpoint;
+import plantmodel.EndpointInterface;
+
+public abstract class DT80Endpoint extends Endpoint {
+	
+	// Private Fields
+	
+	private int channelNumber;
+	
+	// Constructors
+	
+	public DT80Endpoint(String id, EndpointInterface[] physicalInterfaces, EndpointInterface preferredInterface, int channelNumber) {
+		super(id, physicalInterfaces, preferredInterface);
+		
+		this.channelNumber = channelNumber;
+	}
+	
+	public DT80Endpoint(String id, EndpointInterface preferredInterface, int channelNumber) {
+		this(id, new EndpointInterface[] { preferredInterface }, preferredInterface, channelNumber);
+	}
+	
+	public DT80Endpoint(String id, EndpointInterface[] physicalInterfaces, int channelNumber) {
+		this(id, physicalInterfaces, null, channelNumber);
+	}
+	
+	// Accessors
+	
+	public int getChannelNumber() {
+		return this.channelNumber;
+	}
+}

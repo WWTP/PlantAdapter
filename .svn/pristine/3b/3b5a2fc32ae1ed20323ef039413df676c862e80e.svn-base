@@ -1,0 +1,43 @@
+package unit;
+
+import javax.measure.converter.UnitConverter;
+import javax.measure.unit.Unit;
+
+import quantities.IDigitalQuantity;
+
+public class DigitalUnit<Q extends IDigitalQuantity> extends Unit<Q> {
+
+	private int levels;
+	
+	public DigitalUnit(int levels)
+	{
+		this.levels = levels;
+	}
+	
+	public int getLevels()
+	{
+		return this.levels;
+	}
+	
+	@Override
+	public boolean equals(Object arg0) {
+		return ((DigitalUnit<Q>)arg0).getLevels() == levels;
+	}
+
+	@Override
+	public Unit<? super Q> getStandardUnit() {
+		return this;
+	}
+
+	@Override
+	public int hashCode() {
+		return levels;
+	}
+
+	@Override
+	public UnitConverter toStandardUnit() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

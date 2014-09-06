@@ -1,0 +1,14 @@
+package quantities;
+import static javax.measure.unit.SI.BIT;
+
+import javax.measure.quantity.DataAmount;
+import javax.measure.unit.Unit;
+
+public class BinaryQuantity extends DigitalQuantity {
+	public static final Unit<DataAmount> UNIT = (Unit<DataAmount>) BIT;
+	public static final BinaryQuantity QUANTITY = new BinaryQuantity();
+	
+	private BinaryQuantity() {
+		super(2);
+	}
+}

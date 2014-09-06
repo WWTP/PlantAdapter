@@ -1,0 +1,77 @@
+NOTE
+
+Nota importante: in realtà nei DCG ora non c'è più
+bisogno di memorizzare il Device a cui sono associati
+in quanto è per forza quello indicato dal comando!
+
+PLANT ADAPTER
+
+BUGS
+
+COSE DA DEFINIRE
+
+- Generazione dinamica degli ID dei comandi (considerare
+tutte le problematiche legate ai comandi innestati di
+Batch e Timed);
+- possibilità di "condivisione" dei devices tra gli impianti;
+
+- Adam: perché Endpoint diversi per tensione e corrente 
+e non diverse Interfacce?
+
+TODO
+
+- sistemare e rendere omogenea tutta la parte sull'ADAM;
+- astrazione comune per gli executor (e altre classi "standard")
+per fattorizzare parametri dei costruttori etc. per uso con reflection;
+- migliorare il modello, rendendo le associazioni veramente
+diretta tra le classi (al momento si sfruttano le mappe statiche
+delle classi Device, Endpoint etc.). Implementare associazione
+biunivoca fra Endpoint e Device; NOTARE CHE L'UTILIZZO DELLE MAPPE
+STATICHE IMPEDISCE DI AVERE STESSO ID PER DISPOSITIVI IN PLANT DIVERSI
+- definire il concetto di "enpoint di controllo" e il modo per individuarlo
+(nota: hard-coded in PlantAdamStatusCommandExecutor);
+- gestione corretta degli errori con invio ai callback receiver;
+- sistemare la gestione delle schedules, eliminando le dipendenze
+dirette a DT80Schedule e il DT80 (attraverso l'implementazione di
+DeviceScheduledOperatione ScheduleSuppliareDevice). Usa adapters e
+rivedi l'utilità dei concetti;
+- migliorare struttura a livelli (accesso a
+Command Logger, Communication Manager,
+RequestMailboxFactory, ...);
+es: PendingRequestMailbox (al momento il fatto che il riferimento sia cablato nel codice di DT80ReadResponseHandler obbliga
+a modificare il file nei test).
+- migliorare situazioni di dipendenze fra i moduli
+(ciascuno deve essere il più possibile autocontenuto
+e fornire interfaccia basata su astrazioni);
+- DCG: uniformare gestione dei comandi diretti ai dispositivi radice;
+- eliminare dipendenze cicliche (anche implicite, come
+ad esempio se si rispettano stesse convenzioni e simili).
+Una soluzione potrebbe essere quella di modellare anche
+il computer host, che consentirebbe di evitare la convenzione
+del null;
+- prevedere che dei moduli specifici dei dispositivi
+compiano delle operazioni allo startup (ad esempio per
+impostare correttamente i dispositivi);
+- ragionare sulla differenziazione fra timed e schedules;
+- Sistemare CommandLogger e valutare la sua funzione;
+
+TODO SECONDARI
+
+- Sistemare quantities, amount digitali e InformationAmount;
+- gestione maschere per comandi che non prevedano la lettura esplicitamente
+(ad esempio invio di comando come dato grezzo al DT80) o in alternativa
+implementare correttamente un comando di lettura ad esso corrispondente);
+- DT80Device deve controllare se gli ID delle schedule aggiunte sono disponibili,
+lanciando un'eccezione altrimenti;
+- Sistemare IO seriale DT80 con DT80SerialChannelDefinitione DT80SerialChannelOption...
+- consistenza fra un DT80Device e una schedule ad esso riferita;
+- prevedere la possibilità di implementare un comando di
+alto livello sotto forma di più comandi per i dispositivi,
+ed eventualmente anche applicando "protocolli" che prevedano
+anche le risposte";
+- verificare uso di \r e \n nei DCG (non è detto che servano entrambi
+per il DT80) ed eventuali bug nei test dovuti al particolare
+significato che hannno per il sistema operativo;
+- Togli dipendenza DT80 da PlantScheduleDefinitionCommandExecutor.java
+(al momento la definizione delle schedules non è effettivamente implementata,
+vedere qual'è l'approccio giusto per farlo);

@@ -1,0 +1,33 @@
+<class-diagram version="1.0.10" icons="true" always-add-relationships="false" generalizations="true" realizations="true" 
+  associations="true" dependencies="false" nesting-relationships="true">  
+  <interface id="1" corner="BOTTOM_RIGHT" language="java" name="plantadapter.parsers.IInputParser" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/parsers/IInputParser.java" binary="false">    
+    <position height="-1" width="-1" x="126" y="247"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <class id="2" corner="BOTTOM_RIGHT" language="java" name="plantadapter.parsers.InputParserFactory" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/parsers/InputParserFactory.java" binary="false">    
+    <position height="-1" width="-1" x="495" y="327"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </class>  
+  <interface id="3" corner="BOTTOM_RIGHT" language="java" name="plantadapter.parsers.IParsingStrategy" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/parsers/IParsingStrategy.java" binary="false">    
+    <position height="-1" width="-1" x="109" y="417"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+    visibility="true">    
+    <attributes public="true" package="true" protected="true" private="true"/>    
+    <operations public="true" package="true" protected="true" private="true"/>  
+  </classifier-display>  
+  <association-display labels="true" multiplicity="true"/>
+</class-diagram>

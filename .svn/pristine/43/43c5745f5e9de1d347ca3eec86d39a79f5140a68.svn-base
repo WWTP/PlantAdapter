@@ -1,0 +1,113 @@
+package plantadapter.parsers.impl;
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.measure.quantity.Quantity;
+import javax.measure.unit.Unit;
+
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.dev.IInputMask;
+import plantadapter.inputs.MaskFormatException;
+import plantadapter.parsers.IInputParser;
+import plantadapter.parsers.InputParserFactory;
+import plantadapter.results.SingleResult;
+import plantadapter.utils.LinearScalingTransformation;
+import plantadapter.utils.ScalingTransformation;
+import plantmodel.Device;
+import plantmodel.Endpoint;
+import plantmodel.EndpointInterface;
+import plantmodel.IDeviceIOData;
+
+abstract class AbstractInputParser implements IInputParser {
+
+	// Protected Static Methods
+	
+	protected static Unit<? extends Quantity> getResponseMeasurementUnit(Device currentDevice, ReadCommand rc) { // TODO Metodi con analoga politica...
+		// Proprio Endpoint connesso a quello indicato nel comando
+		Endpoint myEp = currentDevice.getConnectedEndpoints(rc.getTargetPort())[0]; // TODO Può non essere vero in generale (?)
+		// Comando relativo all'interfaccia fisica con cui è impostato l'Endpoint
+		if (myEp.hasPreferredInterface() &&  myEp.getPreferredInterface().getQuantity().equals(rc.getQuantity())) {
+			return myEp.getPreferredInterface().getUnit();
+		}
+		else {
+			EndpointInterface[] myEis = myEp.getLogicalInterfacesForQuantity(rc.getQuantity());
+			// Se non è definita un'interfaccia logica ad hoc, crea uno scaling in base alle impostazioni dell'altro Endpoint
+			if (myEis.length == 0) {
+				EndpointInterface[] otherEis = rc.getTargetPort().getEndpointInterfacesForQuantity(rc.getQuantity());
+				return otherEis[0].getUnit(); // TODO Ipotizzo sia unica...
+			}
+			else {
+				// Se è definita un'interfaccia, ottengo la giusta unità di misura...
+				return myEis[0].getUnit(); // TODO Ipotizzo sia unica...
+			}
+		}
+	}
+	
+	protected static ScalingTransformation getScalingTransformation(Device currentDevice, ReadCommand rc) { // TODO Metodi con analoga politica...
+		// Proprio Endpoint connesso a quello indicato nel comando
+		Endpoint myEp = currentDevice.getConnectedEndpoints(rc.getTargetPort())[0]; // TODO Può non essere vero in generale (?)
+		// Comando relativo all'interfaccia fisica con cui è impostato l'Endpoint
+		if (myEp.hasPreferredInterface() && myEp.getPreferredInterface().getQuantity().equals(rc.getQuantity())) { // TODO Prevista possibilità assenza preferredInterface...
+			return LinearScalingTransformation.IDENTITY;
+		}
+		else {
+			EndpointInterface[] myEis = myEp.getLogicalInterfacesForQuantity(rc.getQuantity());
+			// Se non è definita un'interfaccia logica ad hoc, crea uno scaling in base alle impostazioni dell'altro Endpoint
+			if (myEis.length == 0) {
+				EndpointInterface[] otherEis = rc.getTargetPort().getEndpointInterfacesForQuantity(rc.getQuantity());
+				return otherEis[0].getScalingTransformation().invert(); // TODO Ipotizzo sia unica...
+			}
+			else {
+				// Se è definita un'interfaccia si presume che il dispositivo sia già impostato per far restituire il valore nel giusto formato
+				return LinearScalingTransformation.IDENTITY;
+			}
+		}
+	}
+	
+	// Instance Fields
+	
+	private Device device;
+
+	public AbstractInputParser(Device device) {
+		this.device = device;
+	}
+	
+	// Template Methods
+	
+	protected abstract IDeviceIOData convertToDeviceIODataType(IDeviceIOData input);
+	protected abstract IDeviceIOData[] tokenizeInput(IDeviceIOData input);
+	protected abstract SingleResult parse(ReadCommand cmd, IDeviceIOData token);
+
+	// Accessors
+	
+	public Device getDevice() {
+		return this.device;
+	}
+	
+	// IInputParser
+	
+	@Override
+	public final SingleResult[] parse(IInputMask mask, IDeviceIOData input) throws MaskFormatException {
+		if (mask.asMask().getSourceDevice() != this.device)
+			throw new IllegalStateException(); // TODO Passato input generato da un Device che non è quello associato!!!
+		if (!input.getClass().equals(device.getIODataType()))
+			input = this.convertToDeviceIODataType(input);
+		// Risultati da restituire
+		List<SingleResult> results = new LinkedList<SingleResult>();
+		
+		IDeviceIOData[] tokens = this.tokenizeInput(input);
+		if (tokens.length != mask.asMask().getSubMasksCount()) {
+			throw new IllegalStateException(); // TODO La mashera non corrisponde all'input ricevuto!!!	
+		}
+		int tokenIndex = 0;
+		// Esamina tutte le maschere, se si tratta di comandi aggiunge il risultato alla lista, altrimenti delega ad un altro parser...
+		for (IInputMask subMask : mask.asMask()) {
+			if (subMask.isCommand()) results.add(this.parse(subMask.asCommand(), tokens[tokenIndex]));
+			else results.addAll(Arrays.asList(InputParserFactory.getInputParser(subMask.asMask().getSourceDevice()).parse(subMask, tokens[tokenIndex])));
+			tokenIndex++;
+		}
+		return results.toArray(new SingleResult[0]);
+	}
+}

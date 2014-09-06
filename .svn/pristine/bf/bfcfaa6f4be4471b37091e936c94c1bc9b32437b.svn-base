@@ -1,0 +1,57 @@
+package testbench;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+
+class ServerActivationThread extends Thread
+{
+	private ServerSocket server;
+	private Socket cnn;
+	
+	private Lock lock;
+	private Condition condition;
+	
+	public ServerActivationThread(ServerSocket server, Lock lock, Condition condition) {
+		this.server = server;
+		this.cnn = null;
+
+		this.lock = lock;
+		this.condition = condition;
+	}
+	
+	@Override
+	public void run() {
+		// attende di acquisire il lock
+		this.lock.lock();
+		// attende e accetta la richiesta
+		try { cnn = server.accept(); } 
+		catch (IOException e) {
+			throw new RuntimeException();
+		}
+		// libera il lock e termina
+		this.condition.signal();
+		this.lock.unlock();
+	}
+	
+	public InputStream getInputStream() {
+		if (this.cnn == null) 
+			throw new IllegalStateException();
+		try { return this.cnn.getInputStream(); } 
+		catch (IOException e) {
+			throw new RuntimeException();
+		}
+	}
+	
+	public OutputStream getOutputStream() {
+		if (this.cnn == null) throw new IllegalStateException();
+		try { return this.cnn.getOutputStream(); } 
+		catch (IOException e) {
+			throw new RuntimeException();
+		}
+	}
+}

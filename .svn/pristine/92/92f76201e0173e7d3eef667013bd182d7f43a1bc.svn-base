@@ -1,0 +1,107 @@
+package plantadapter.dcgs.impl.dt80;
+
+import plantadapter.commands.PortCommand;
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.WriteCommand;
+
+import plantmodel.AnalogueEndpointInterface;
+import plantmodel.IEndpointInterface;
+import plantmodel.dt80.DT80AnalogueEndpoint;
+import plantmodel.dt80.DT80ChannelDefinition;
+import plantmodel.dt80.DT80ChannelOption;
+import plantmodel.dt80.DT80ChannelOptionList;
+import plantmodel.dt80.DT80Device;
+import plantmodel.dt80.DT80Utils;
+import plantmodel.dt80.DT80Utils.Info.ChannelTypes;
+
+class DT80AnalogueChannelDefinitionCommandBuilder implements
+		IDT80ChannelDefinitionBuilder {
+
+	public static DT80AnalogueChannelDefinitionCommandBuilder getReadingInstance(ReadCommand command) {
+		if (!validateCommand(command))
+			throw new IllegalArgumentException();
+		return new DT80AnalogueChannelDefinitionCommandBuilder(command);
+	}
+	
+	public static DT80AnalogueChannelDefinitionCommandBuilder getWritingInstance(WriteCommand command) {
+		if (!validateCommand(command))
+			throw new IllegalArgumentException();
+		return new DT80AnalogueChannelDefinitionCommandBuilder(command);
+	}
+	
+	private static boolean validateCommand(PortCommand command) {
+		return command.getTargetPort() instanceof DT80AnalogueEndpoint;
+	}
+	
+	private PortCommand command;
+	
+	private DT80AnalogueChannelDefinitionCommandBuilder(PortCommand command) {
+		this.command = command;
+	}
+	
+	private DT80ChannelDefinition buildWriteCommand() {
+		// TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	private DT80ChannelDefinition buildReadCommand() {
+		
+		ChannelTypes channelType = null;
+		
+		ReadCommand rdCmd = (ReadCommand)this.command;
+		
+		/* Verifica se la grandezza indicata nel comando è tra quelle logiche
+		 * supportate, se non è presente controlla che sia supportata la grandezza
+		 * preferita dell'endpoint di provenienza (ovvero se è una grandezza logica
+		 * o la preferita di sourcePort). 
+		 * 
+		 * TODO Eventualmente fattorizzare in una superclasse...
+		 */
+		
+		for (IEndpointInterface ei : rdCmd.getTargetPort().getLogicalInterfaces()) {
+			if (ei.getQuantity().equals(rdCmd.getQuantity())) {
+				channelType = DT80Utils.Info.ChannelTypes.getChannelTypeForQuantity(rdCmd.getTargetPort().getPreferredInterface().getQuantity());
+				break;
+			}
+		}
+		
+		// TODO
+		// Non funziona se nel DT80 il particolare canale non è impostato come "preferred".
+		// Occorre stabilire una politica generale o comunque un messaggio d'errore sensato!
+		
+		if (channelType == null) {
+			
+			for (IEndpointInterface ei : rdCmd.getTargetPort().getLogicalInterfaces()) {
+				if (ei.getQuantity().equals(rdCmd.getTargetPort().getPreferredInterface())) {
+					channelType = DT80Utils.Info.ChannelTypes.getChannelTypeForQuantity(rdCmd.getTargetPort().getPreferredInterface().getQuantity());
+					break;
+				}
+			}
+			
+			if (!(rdCmd.getTargetPort().getPreferredInterface().getQuantity().equals(rdCmd.getTargetPort().getPreferredInterface().getQuantity())))
+				throw new IllegalStateException(); // TODO
+			
+			channelType = DT80Utils.Info.ChannelTypes.getChannelTypeForQuantity(rdCmd.getTargetPort().getPreferredInterface().getQuantity());
+		}
+		
+		DT80ChannelOptionList options = new DT80ChannelOptionList();
+		// Utilizza l'eventuale span impostato per il canale relativamente alla grandezza impostata nel comando
+		DT80ChannelOption span = ((DT80Device)rdCmd.getTargetDevice()).getSpan(rdCmd.getTargetPort(), rdCmd.getQuantity());
+		if (span != null) options.add(span);
+		
+		DT80AnalogueEndpoint dt80Ep = (DT80AnalogueEndpoint)rdCmd.getTargetPort();
+		
+		//\\\ Creazione Channel Definition
+		return  new DT80ChannelDefinition(dt80Ep.getChannelNumber(), channelType, dt80Ep.getChannelModifier(), options);
+	}
+
+	@Override
+	public DT80ChannelDefinition buildChannelDefinition() {
+		if (this.command instanceof WriteCommand)
+			return this.buildWriteCommand();
+		else if (this.command instanceof ReadCommand)
+			return this.buildReadCommand();
+		else
+			throw new IllegalStateException();
+	}
+}

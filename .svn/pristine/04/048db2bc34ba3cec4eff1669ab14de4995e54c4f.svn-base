@@ -1,0 +1,141 @@
+package tests.dev.gen.dcgs.dt80;
+
+import static org.junit.Assert.*;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import plantadapter.cmdgen.DeviceCommandGenerationList;
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.WriteCommand;
+import plantadapter.dcgs.DeviceCommandGeneratorFactory;
+import plantadapter.excpts.DeviceNotFoundException;
+import plantadapter.excpts.InvalidCommandException;
+
+import plantmodel.Device;
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Device;
+import quantities.BinaryAmount;
+import quantities.InformationAmount;
+
+import tests.model.ModelTest;
+
+public class DT80DeviceCommandGeneratorTest {
+	
+	@BeforeClass
+	public static void setup(){
+		ModelTest.setup();
+	}
+	
+	private static DeviceCommandGeneratorFactory dcgFactory = new DeviceCommandGeneratorFactory(); 
+	
+	@Test
+	public void testDT80DeviceCommandGenerator() {
+		// TEST su generazione singolo DeviceCommandGenerator
+//		DT80Device device = new DT80Device("Dummy", null);
+//		DT80DeviceCommandGenerator dcg = new DT80DeviceCommandGenerator(device);
+//		assertEquals(device,dcg.getRelatedDevice());
+		
+		// TEST su quanto ISTANZIATO nel SISTEMA
+		for(Device d : Device.getSystemDevices()){
+			try {
+				if(d instanceof DT80Device)
+					assertNotNull(dcgFactory.getDeviceCommandGenerator(d));
+			} catch (Exception e) {
+				fail();
+			}
+		}
+	}
+
+	@Test
+	public void testGetNewCommands() {
+		DT80Device device = null;
+		for(Device d : Device.getRootDevices())
+			if(d instanceof DT80Device){
+				device = (DT80Device) d;
+				break;
+			}
+		if(device == null)
+			fail("DT80Device NOT in Root Devices!");
+		
+		/// READ
+		
+		ReadCommand rc = new ReadCommand("ReadCommand", Device.fromID("DT80").getEndpointById("1(+#)"), javax.measure.quantity.ElectricPotential.class);
+		
+		// Questo comando è sbagliato per il test che segue, non si può inviare al DCG di un DT80 un comando diretto a orp_anox!
+		//ReadCommand rc = new ReadCommand("ReadCommand", Device.fromID("orp_anox").getEndpointById("SOURCE"), javax.measure.quantity.ElectricPotential.class);
+		
+		DeviceCommandGenerationList dcgl = new DeviceCommandGenerationList(device);
+		dcgl.add(rc);
+		
+		try {
+			WriteCommand expectedCommand = new WriteCommand(rc.getCommandID(), rc.getTimestamp(), device.getEndpointById("ETHERNET_PORT"), new InformationAmount(new ASCIIString("1+V\r\n").toByteArray()));
+			System.out.println(writeCommandToString(expectedCommand));
+			System.out.println(writeCommandToString((WriteCommand)dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand()));
+			assertEquals(expectedCommand, dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand());
+			// Controllo comportamento costante
+			assertEquals(expectedCommand, dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand());
+		} catch (InvalidCommandException e) {
+			fail("Invalid Command!");
+		} catch (DeviceNotFoundException e) {
+			fail("Device NOT found!");
+		}
+		//\ READ
+		
+		/// WRITE
+		WriteCommand wc;
+		wc = new WriteCommand("WriteCommand", Device.fromID("orp_anox").getEndpointById("SOURCE"), new InformationAmount(new ASCIIString("WRITE ME\r\n").toByteArray()));
+
+		dcgl = new DeviceCommandGenerationList(device);
+		dcgl.add(wc);
+		
+		/* Nota: il seguente test fallisce: a parte il fatto che si chiede una write su una sonda,
+		 * il problema è che le uniche write supportate sono quelle sulle seriali e orp_anox
+		 *  non è connesso ad una porta seriale (un comando tipo questo avrebbe senso in caso di 
+		 *  canali analogici scrivibili).
+		
+		try {
+			WriteCommand expectedCommand = new WriteCommand(wc.getCommandID(), wc.getTimestamp(), device, device.getEndpointById("ETHERNET_PORT"), new InformationAmount(new ASCIIString("2SERIAL(\"{WRITE ME\\013\\010}\")\r\n").toByteArray()));
+			System.out.println(writeCommandToString(expectedCommand));
+			System.out.println(writeCommandToString((WriteCommand)dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand()));
+			assertEquals(expectedCommand, dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand());
+		} catch (InvalidCommandException e) {
+			fail("Invalid Command!");
+		} catch (DeviceNotFoundException e) {
+			fail("Device NOT found!");
+		}
+		
+		*/
+		
+		//// TEST COMANDI DIGITALI
+		wc = new WriteCommand("DigitalWriteCommand", Device.fromID("DT80").getEndpointById("1D"), new BinaryAmount(1));
+		
+		dcgl = new DeviceCommandGenerationList(device);
+		dcgl.add(wc);
+		
+		try {
+			WriteCommand expectedCommand = new WriteCommand(wc.getCommandID(), wc.getTimestamp(), device.getEndpointById("ETHERNET_PORT"), new InformationAmount(new ASCIIString("1DSO=1\r\n").toByteArray()));
+			System.out.println(writeCommandToString(expectedCommand));
+			System.out.println(writeCommandToString((WriteCommand)dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand()));
+			assertEquals(expectedCommand, dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand());
+			// Controllo comportamento costante
+			assertEquals(expectedCommand, dcgFactory.getDeviceCommandGenerator(device).generateCommands(dcgl)[0].getSolvedDeviceCommand());
+		} catch (InvalidCommandException e) {
+			fail("Invalid Command!");
+		} catch (DeviceNotFoundException e) {
+			fail("Device NOT found!");
+		}
+		//\\ TEST COMANDI DIGITALI
+		//\ WRITE
+	}
+	
+	//TODO TMP
+	private static String writeCommandToString(WriteCommand command){
+		StringBuilder sb = new StringBuilder();
+		for (byte b : ((InformationAmount)command.getValue()).getBytes()) {
+			sb.append((char)b);
+		}
+		String value = sb.toString();
+		return command.getCommandID() + command.getTimestamp() + " - " + command.getTargetDevice() + ":" + command.getTargetPort() + "=\"" + value + "\"" + ((InformationAmount)command.getValue()).getQuantity().getSimpleName();
+	}
+}

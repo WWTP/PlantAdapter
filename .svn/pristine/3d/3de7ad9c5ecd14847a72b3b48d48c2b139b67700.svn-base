@@ -1,0 +1,28 @@
+package plantadapter.commands.adam;
+
+import java.util.Date;
+
+import plantmodel.adam.Adam5000Device;
+import plantmodel.datatypes.ASCIIString;
+
+public class Adam5024LastValueReadBackCommand extends Adam5000ChannelCommand {
+
+	public Adam5024LastValueReadBackCommand(String commandID, Date timestamp, Adam5000Device targetDevice, int slot, int channel) {
+		super(commandID, timestamp, targetDevice, slot, channel);
+	}
+
+	public Adam5024LastValueReadBackCommand(String commandID, Adam5000Device targetDevice, int slot, int channel) {
+		this(commandID, new Date(), targetDevice, slot, channel);
+	}
+	
+	@Override
+	public Adam5000Device getTargetDevice() {
+		return (Adam5000Device)super.getTargetDevice();
+	}
+	
+	// TODO Fattorizza in un'interfaccia...
+	
+	public ASCIIString getSyntax() {
+		return ASCIIString.fromString("$" + super.getSyntax().toString() + "6\r"); // Nota: aggiunto anche lo \r perché si tratta di un comando "concreto"...
+	}
+}

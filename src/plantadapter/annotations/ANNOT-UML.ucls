@@ -1,0 +1,49 @@
+<class-diagram version="1.0.10" icons="true" always-add-relationships="false" generalizations="true" realizations="true" 
+  associations="true" dependencies="false" nesting-relationships="true">  
+  <class id="1" corner="BOTTOM_RIGHT" language="java" name="plantadapter.annotations.DeviceInfo.NullInputParser" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/annotations/DeviceInfo.java" binary="false">    
+    <position height="95" width="248" x="415" y="285"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </class>  
+  <annotation id="2" corner="BOTTOM_RIGHT" language="java" name="plantadapter.annotations.CommandInfo" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/annotations/CommandInfo.java" binary="false">    
+    <position height="78" width="322" x="197" y="133"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </annotation>  
+  <annotation id="3" corner="BOTTOM_RIGHT" language="java" name="plantadapter.annotations.DeviceInfo" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/annotations/DeviceInfo.java" binary="false">    
+    <position height="112" width="411" x="559" y="133"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </annotation>  
+  <class id="4" corner="BOTTOM_RIGHT" language="java" name="plantadapter.annotations.DeviceInfo.NullInputRecognizer" 
+    project="PlantAdapter" file="/PlantAdapter/src/plantadapter/annotations/DeviceInfo.java" binary="false">    
+    <position height="95" width="140" x="703" y="285"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </class>  
+  <nesting id="5">    
+    <end type="SOURCE" refId="3"/>    
+    <end type="TARGET" refId="1"/>  
+  </nesting>  
+  <nesting id="6">    
+    <end type="SOURCE" refId="3"/>    
+    <end type="TARGET" refId="4"/>  
+  </nesting>  
+  <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+    visibility="true">    
+    <attributes public="true" package="true" protected="true" private="true"/>    
+    <operations public="true" package="true" protected="true" private="true"/>  
+  </classifier-display>  
+  <association-display labels="true" multiplicity="true"/>
+</class-diagram>

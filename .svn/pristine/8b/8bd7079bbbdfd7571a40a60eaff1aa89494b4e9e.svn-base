@@ -1,0 +1,426 @@
+package tests;
+
+import gui.SliderControl;
+import gui.SliderControl.ISliderListener;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import java.nio.charset.Charset;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import javax.measure.quantity.ElectricCurrent;
+import javax.measure.quantity.Temperature;
+
+import javax.xml.xpath.XPathExpressionException;
+
+import org.jscience.physics.amount.Amount;
+
+import org.xml.sax.SAXException;
+
+import plantadapter.IPlantCallbackReceiver;
+import plantadapter.PlantAdapter;
+
+import plantadapter.commands.DeviceCommand;
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.ScheduleDefinitionCommand;
+import plantadapter.commands.ScheduleSubscriptionCommand;
+import plantadapter.commands.WriteCommand;
+import plantadapter.excpts.CommandFailureException;
+import plantadapter.excpts.PlantAdapterException;
+import plantadapter.excpts.PlantConfigurationException;
+import plantadapter.results.Result;
+import plantadapter.schedules.SystemScheduleDefinition;
+
+import plantmodel.Endpoint;
+import plants.MulePlant;
+import quantities.AnalogueAmount;
+import quantities.DO;
+import quantities.Flow;
+import quantities.IAmount;
+import quantities.InformationAmount;
+import quantities.NH4;
+import quantities.NO3;
+import quantities.ORP;
+import quantities.PH;
+import quantities.TSS;
+import tests.model.ModelTest;
+
+import xmld.XMLData;
+
+public class Main {
+	
+	// DataTaker Impianto (ip moddato per usare in LAN)
+	private static final String ip = "192.168.46.254";
+	private static final int port = 7700;
+	
+	// DataTaker Impianto
+//	private static final String ip = "169.254.44.18";
+//	private static final int port = 7700;
+	
+	// DataTaker Ufficio
+//	private static final String ip = "169.254.44.21";
+//	private static final int port = 7700;
+
+	// DataTaker Trebbo (Hamachi)
+//	private static final String ip = "5.87.243.61";
+//	private static final int port = 2000;
+	
+	public static ReadCommand[] setupScheduleCommands() {
+		ReadCommand[] commands = new ReadCommand[12];
+		commands[0] = new ReadCommand("ORP_Anox",
+				Endpoint.fromID("ORP_Anox", "source"), ORP.class);
+		commands[1] = new ReadCommand("pH_Anox",
+				Endpoint.fromID("pH_Anox", "source"), PH.class);
+		commands[2] = new ReadCommand("NH4_Anox",
+				Endpoint.fromID("NH4_Anox", "source"), NH4.class);
+		commands[3] = new ReadCommand("Temperature",
+				Endpoint.fromID("Temperature", "source"), Temperature.class);
+		commands[4] = new ReadCommand("NO3_Anox",
+				Endpoint.fromID("NO3_Anox", "source"), NO3.class);
+		commands[5] = new ReadCommand("ORP_Ox",
+				Endpoint.fromID("ORP_Ox", "source"), ORP.class);
+		commands[6] = new ReadCommand("Oxigen",
+				Endpoint.fromID("Oxigen", "source"), DO.class);
+		commands[7] = new ReadCommand("pH_Ox",
+				Endpoint.fromID("pH_Ox", "source"), PH.class);
+		commands[8] = new ReadCommand("TSS",
+				Endpoint.fromID("TSS", "source"), TSS.class);
+		commands[9] = new ReadCommand("NO3_Ox",
+				Endpoint.fromID("NO3_Ox", "source"), NO3.class);
+		commands[10] = new ReadCommand("Flow",
+				Endpoint.fromID("Flow", "source"), Flow.class);
+		commands[11] = new ReadCommand("NH4_Ox",
+				Endpoint.fromID("NH4_Ox", "source"), NH4.class);
+		return commands;
+	}
+	
+	private static void setupSchedule(PlantAdapter p) throws CommandFailureException {
+		
+		List<DeviceCommand> scheduledCommands = new ArrayList<DeviceCommand>();
+		
+//		ReadCommand rdCmd = new ReadCommand(UUID.randomUUID().toString(), 
+//				Device.fromID("oxigen"), Endpoint.fromID("oxigen", "source"), DO.class);
+//		
+//		scheduledCommands.add(rdCmd);
+		
+		scheduledCommands.addAll(Arrays.asList(setupScheduleCommands()));
+		
+		// TODO Verificare perché non va nel caso seguente e correggere...
+		
+		/*
+		// Definizione della Schedule
+		p.sendCommand(new ScheduleDefinitionCommand(UUID.randomUUID().toString(), 
+				"Martina", scheduledCommands.toArray(new DeviceCommand[0]), 
+				new Date(), 5000));
+		// Sottoscrizione della Schedule
+		p.sendCommand(new ScheduleSubscriptionCommand(UUID.randomUUID().toString(), "Martina"));
+		*/
+		
+		// TODO Verificare perché non va nel caso precedente e correggere...
+		
+		// Definizione Schedule
+		SystemScheduleDefinition schedule = ModelTest.createSchedule(); // TODO Invio comando definizione...
+		
+		// Sottoscrizione alla Schedule...
+		ScheduleSubscriptionCommand subscription = new ScheduleSubscriptionCommand(UUID.randomUUID().toString(), schedule.getScheduleId());
+		p.sendCommand(subscription);
+	}
+	
+	// 1
+	private static void sendReadCommand(PlantAdapter p) throws CommandFailureException {
+		p.sendCommand(
+				new ReadCommand(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("oxigen", "source"),
+						DO.class
+				)
+		);
+	}
+	
+	/**
+	 * La stringa deve contenere il valore completo di unità di misura.
+	 * @param p
+	 * @param currentValue
+	 * @throws CommandFailureException 
+	 */
+	private static void setAdamCurrentFromString(PlantAdapter p, String currentValue) throws CommandFailureException {
+		@SuppressWarnings("unchecked")
+		IAmount value = new AnalogueAmount(ElectricCurrent.class, (Amount<ElectricCurrent>)Amount.valueOf(currentValue));
+		p.sendCommand
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("pump", "cmd_port"),
+						value
+				)
+		);	
+	}
+	
+	// 2
+	private static void setAdamCurrent(PlantAdapter p, BufferedReader input) throws CommandFailureException, IOException {
+
+		System.out.println("Corrente (mA):");
+		String current = input.readLine() + " mA";
+		setAdamCurrentFromString(p, current);
+	}
+
+	// 3
+	private static void toggleScheduleResults(PlantObserver o) throws CommandFailureException {
+		o.setInhibit(!o.getInhibit());
+	}
+	
+	// 4
+	private static void toggleFullXML(PlantObserver o) throws CommandFailureException {
+		o.setFullXML(!o.getFullXML());
+	}
+	
+	private static void pause(long timeout, long timespan) throws InterruptedException {
+		for (long count = 0; count < timeout; count += timespan) {
+			System.out.println("-"  + (timeout - count) / 1000);
+			Thread.sleep(timespan);
+		}
+	}
+	
+	// 5 
+	private static void adamCurrentVariation(PlantAdapter p) throws CommandFailureException, InterruptedException {
+		
+		// TODO Con un po' più di logica, potrebbe leggere il valore attuale e variare il tempo di conseguenza
+		// (per ora essendo un esempio, si considera un transitorio iniziale lungo, da 20 a 4 mA)
+		
+		System.out.println("Imposto corrente 4 mA");
+		setAdamCurrentFromString(p, "4 mA");
+		pause(20000, 1000);
+		System.out.println("Imposto corrente 8 mA");
+		setAdamCurrentFromString(p, "8 mA");
+		pause(12000, 1000);
+		System.out.println("Imposto corrente 16 mA");
+		setAdamCurrentFromString(p, "16 mA");
+		pause(12000, 1000);
+		System.out.println("Imposto corrente 20 mA");
+		setAdamCurrentFromString(p, "20 mA");
+	}
+	
+	// 5 
+	private static void adamCurrentVariationGUI(PlantAdapter p) throws CommandFailureException, InterruptedException {
+		// TODO Settare lo slider posizionato inizialmente sul livello attuale dell'ADAM
+		SliderControl slider = new SliderControl();
+		slider.addSliderListener(new SliderListener(p));
+	}
+	
+	private static void printMenu() {
+		System.out.println("1) Invia ReadCommand");
+		System.out.println("2) Imposta corrente ADAM");
+		System.out.println("3) Attiva/disattiva stampa risultati");
+		System.out.println("4) Attiva/disattiva XML completo");
+		System.out.println("5) Variazione nel tempo corrente ADAM");
+		System.out.println("6) GUI controllo corrente ADAM");
+		System.out.println();
+	}
+	
+	private static void setupSystem(PlantAdapter p) throws CommandFailureException {
+		
+		// TODO Controllare i terminatori (forse gli \n sono di troppo).
+		
+		p.sendCommand
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("/H\r\n".getBytes())
+				)
+		);
+		
+		// Impostazioni da dare alla porta seriale per il corretto funzionamento con l'ADAM
+		// (NOTA: si suppone di usare la HOST_PORT - porta RS232 sul lato sinistro).
+		
+		p.sendCommand // PROFILE"HOST_PORT" "BPS"="9600"
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("PROFILE\"HOST_PORT\" \"BPS\"=\"9600\"\r\n".getBytes())
+				)
+		);
+		p.sendCommand // PROFILE"HOST_PORT" "DATA_BITS"="8"
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("PROFILE\"HOST_PORT\" \"DATA_BITS\"=\"8\"\r\n".getBytes())
+				)
+		);
+		p.sendCommand // PROFILE"HOST_PORT" "STOP_BITS"="1"
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("PROFILE\"HOST_PORT\" \"STOP_BITS\"=\"1\"\r\n".getBytes())
+				)
+		);
+		p.sendCommand // PROFILE"HOST_PORT" "PARITY"="NONE"
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("PROFILE\"HOST_PORT\" \"PARITY\"=\"NONE\"\r\n".getBytes())
+				)
+		);
+		p.sendCommand // PROFILE"HOST_PORT" "FUNCTION"="SERIAL"
+		(
+				new WriteCommand
+				(
+						UUID.randomUUID().toString(),
+						Endpoint.fromID("dt80", "ETHERNET_PORT"),
+						new InformationAmount("PROFILE\"HOST_PORT\" \"FUNCTION\"=\"SERIAL\"\r\n".getBytes())
+				)
+		);
+	}
+		
+	/**
+	 * @param args
+	 * @throws CommandFailureException 
+	 * @throws PlantConfigurationException 
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 */
+	public static void main(String[] args) throws CommandFailureException, PlantConfigurationException, InterruptedException, IOException {
+	
+		MulePlant model = new MulePlant(ip, port);
+		
+		PlantObserver observer = new PlantObserver();
+		PlantAdapter p = PlantAdapter.newInstance("Mule", model.getDevices(), observer);
+		
+		setupSystem(p);
+		
+		setupSchedule(p);
+		
+		printMenu();
+		
+		BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+		String cmd;
+		
+		while ((cmd = input.readLine()) != null) {
+			if (cmd.equals("1")) sendReadCommand(p);
+			if (cmd.equals("2")) setAdamCurrent(p, input);
+			if (cmd.equals("3")) toggleScheduleResults(observer);
+			if (cmd.equals("4")) toggleFullXML(observer);
+			if (cmd.equals("5")) adamCurrentVariation(p);
+			if (cmd.equals("6")) adamCurrentVariationGUI(p);
+			printMenu();
+		}
+	}
+	
+	private static class SliderListener implements ISliderListener {
+		
+		private PlantAdapter p;
+		
+		public SliderListener(PlantAdapter p) {
+			this.p = p;
+		}
+
+		@Override
+		public void percChanged(float perc) {
+			// Range in mA
+			int range = 20 - 4;
+			// Ottengo il valore impostato in mA
+			float value = 4 + perc * range;
+			
+			String mA = value + " mA";
+			System.out.println(mA);
+			
+			try 
+			{
+				setAdamCurrentFromString(this.p, mA);
+			} 
+			catch (CommandFailureException e) {
+				throw new RuntimeException("setAdamCurrentFromString");
+			}
+		}
+	}
+	
+	private static class PlantObserver implements IPlantCallbackReceiver
+	{
+		private boolean fullXML;
+		private boolean inhibit;
+		
+		public PlantObserver() {
+			this.fullXML = false;
+			this.inhibit = true;
+		}
+		
+		private static String getShortXML(String xml) throws XPathExpressionException, SAXException {
+			String s = "";
+			// TODO Rimuovo la prima parte perché c'è qualcosa che non piace al Parser...
+			xml = xml.substring(xml.indexOf('>') + 1, xml.length());
+			xml = xml.trim();
+			
+			XMLData d = XMLData.fromXML(xml, Charset.forName("UTF-16")); // TODO Metti in XMLData un modo per ottenere il Charset...
+			
+			s += d.toDocument().getFirstChild().getNodeName() + "\n";
+			
+			for (XMLData res : d.getNodes("//singleResult")) {
+				s += res.dom("singleResult/timestamp") + "\n";
+				s += res.dom("singleResult/quantity") + "\n";
+				s += res.dom("singleResult/amount") + " ";
+				s += res.dom("singleResult/mu") + "\n";
+			}
+			
+			return s;
+		}
+
+		public synchronized boolean getFullXML() {
+			return this.fullXML;
+		}
+		
+		public synchronized void setFullXML(boolean fullXML) {
+			this.fullXML = fullXML;
+		}
+		
+		public synchronized boolean getInhibit() {
+			return this.inhibit;
+		}
+		
+		public synchronized void setInhibit(boolean inhibit) {
+			this.inhibit = inhibit;
+		}
+		
+		@Override
+		public synchronized void sendInput(Result result) {
+			
+			if (this.inhibit) return;
+			
+			try 
+			{
+				//System.out.println(this.fullXML ? xml : getShortXML(xml));
+				System.out.println(result.toString());
+				System.out.flush();
+			}
+			catch (Exception e) { e.printStackTrace(); }
+		}
+
+		@Override
+		public synchronized void sendError(PlantAdapterException exception) {
+			
+			if (this.inhibit) return;
+			
+			try 
+			{
+				System.out.println(this.fullXML ? exception.getMessage() : getShortXML(exception.getMessage()));
+			}
+			catch (Exception e) { throw new RuntimeException(); }
+		}
+	}
+}

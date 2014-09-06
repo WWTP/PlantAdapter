@@ -1,0 +1,15 @@
+package quantities;
+
+public interface IDigitalAmount extends IAmount {
+	/**
+	 * Permette di ottenera il livello digitale al quale ci si riferisce
+	 * @return livello impostato nella quantità
+	 */
+	int getLevel();
+	
+	/**
+	 * Permette di ottenere il numero totale di livelli esposti dalla grandezza digitale
+	 * @return numero livelli supportati
+	 */
+	int getLevels();
+}

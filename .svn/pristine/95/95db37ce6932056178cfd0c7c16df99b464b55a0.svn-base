@@ -1,0 +1,237 @@
+package plants;
+
+import static javax.measure.unit.SI.MILLI;
+import static javax.measure.unit.SI.VOLT;
+
+import javax.measure.quantity.ElectricPotential;
+import javax.measure.quantity.Quantity;
+import javax.measure.quantity.Temperature;
+import javax.measure.unit.Unit;
+
+import org.jscience.physics.amount.Amount;
+
+import plantadapter.utils.LinearScalingTransformation;
+
+import plantmodel.Connection;
+import plantmodel.Device;
+import plantmodel.Endpoint;
+import plantmodel.EndpointInterface;
+import plantmodel.IPConnection;
+import plantmodel.adam.Adam5000Device;
+import plantmodel.dt80.DT80Device;
+import plantmodel.dt80.DT80Span;
+import plantmodel.misc.ActuableDevice;
+import plantmodel.misc.ProbeDevice;
+
+import quantities.DO;
+import quantities.Flow;
+import quantities.NH4;
+import quantities.NO3;
+import quantities.ORP;
+import quantities.PH;
+import quantities.TSS;
+
+public class MulePlant {
+	
+	private static void setupDT80EndpointInterfaces() {
+		DT80Device dt80 = (DT80Device)Device.fromID("dt80");
+		int spanIndex = 1;
+		for (Connection cnn : dt80.getConnectionsAsMaster()) {
+			if(cnn.getSlaveDevice() instanceof ProbeDevice){
+				Endpoint dt80Ep = cnn.getMasterEndpoint();
+				Endpoint probeEp = cnn.getSlaveEndpoint();
+				EndpointInterface probeEi = probeEp.getLogicalInterfaces()[0];
+				EndpointInterface dt80Ei = probeEi; // TODO Copia semplicemente l'EI (tanto quelle delle sonde non vengono mai usate)
+				dt80Ep.addLogicalInterface(dt80Ei);
+				// Ora usa l'interfaccia fisica delle sonde...
+				probeEi = probeEp.getPreferredInterface();
+				dt80.addHwSpan(new DT80Span(spanIndex, null, 
+						probeEi.getMinimum().getEstimatedValue(),
+						dt80Ei.getMinimum().getEstimatedValue(),
+						probeEi.getMaximum().getEstimatedValue(),
+						dt80Ei.getMaximum().getEstimatedValue()), 
+						dt80Ep, dt80Ei);
+				spanIndex++;
+			}
+		}
+	}
+	
+	private static Connection createConnection(
+			String masterDeviceID, String masterEndpointID, 
+			String slaveDeviceID, String slaveEndpointID) {
+		return new Connection(
+				Endpoint.fromID(masterDeviceID, masterEndpointID),
+				Endpoint.fromID(slaveDeviceID, slaveEndpointID)
+		);
+	}
+	
+	private static ProbeDevice createProbe(String id, EndpointInterface... endpointInterfaces) {
+		return new ProbeDevice(id, "", "", "", "", endpointInterfaces[0], endpointInterfaces[1]);
+	}
+	
+	// TODO Manca indicazione Range...
+	private static EndpointInterface createEpInterface(Class<? extends Quantity> quantity,
+			Unit<? extends Quantity> unit, double factor, double offset, 
+			double minAmount, Unit<? extends Quantity> minAmountUnit, double maxAmount, Unit<? extends Quantity> maxAmountUnit) {
+		return new EndpointInterface(quantity, unit, Amount.valueOf(minAmount, minAmountUnit), Amount.valueOf(maxAmount, maxAmountUnit), 
+				new LinearScalingTransformation(factor, offset));
+	}
+	
+	private static final void setup(String ip, int port) {
+		
+		EndpointInterface physicalEp, logicalEp;
+		
+		// DT80
+		DT80Device dt80 = new DT80Device("dt80", "");
+		
+		Endpoint dt80Ep = dt80.getEndpointById("1(+#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("1(-#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("1(*#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		
+		dt80Ep = dt80.getEndpointById("2(+#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("2(-#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("2(*#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		
+		dt80Ep = dt80.getEndpointById("3(*#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("3(+-)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		
+		dt80Ep = dt80.getEndpointById("4(*#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("4(+-)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		
+		dt80Ep = dt80.getEndpointById("5(*#)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+		dt80Ep = dt80.getEndpointById("5(+-)");
+		dt80.setEndpointPreferredInterface(dt80Ep, dt80.getEndpointNativeInterfaces(dt80Ep, ElectricPotential.class)[0]);
+
+		// ADAM
+		new Adam5000Device("adam", "", 1);
+		
+		// Actuable (PUMP)
+		// TODO Aggiungere in modo coerente con i test
+		// createActuable("internal_recycle_pump");
+
+		// Sonde (ANOX)
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 401.326, Unit.valueOf("mV"), 2022.401, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(ORP.class, ORP.UNIT, 0.617, -747.568, -500, Unit.valueOf("mV"), 500, Unit.valueOf("mV"));
+		createProbe("orp_anox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 401.6, Unit.valueOf("mV"), 2001.6, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(PH.class, PH.UNIT, 0.006, -0.510, 2, PH.UNIT, 12, PH.UNIT);
+		createProbe("ph_anox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400, Unit.valueOf("mV"), 2000, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(NH4.class, NH4.UNIT, 0.062, -24.875, 0.1, Unit.valueOf("mg/L"), 100, Unit.valueOf("mg/L")); // Importante L maiuscola...
+		createProbe("nh4_anox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400, Unit.valueOf("mV"), 2000, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(NO3.class, NH4.UNIT, 0.062, -24.875, 0.1, Unit.valueOf("mg/L"), 100, Unit.valueOf("mg/L"));
+		createProbe("no3_anox", physicalEp, logicalEp);
+		// Sonde (OX)
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400.815, Unit.valueOf("mV"), 2006.926, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(ORP.class, ORP.UNIT, 1.245, -1499.113, -1000, Unit.valueOf("mV"), 1000, Unit.valueOf("mV"));
+		createProbe("orp_ox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400.623, Unit.valueOf("mV"), 1997.584, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(PH.class, PH.UNIT, 0.006, -0.509, 2, PH.UNIT, 12, PH.UNIT);
+		createProbe("ph_ox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400, Unit.valueOf("mV"), 2000, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(NH4.class, NH4.UNIT, 0.062, -24.875, 0.1, Unit.valueOf("mg/L"), 100, Unit.valueOf("mg/L"));
+		createProbe("nh4_ox", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400, Unit.valueOf("mV"), 2000, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(NO3.class, NO3.UNIT, 0.062, -24.875, 0.1, Unit.valueOf("mg/L"), 100, Unit.valueOf("mg/L"));
+		createProbe("no3_ox", physicalEp, logicalEp);
+		// Sonde
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 400, Unit.valueOf("mV"), 2000, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(TSS.class, TSS.UNIT, 2.5, -1000, 0.0, Unit.valueOf("mg/L"), 4000, Unit.valueOf("mg/L"));
+		createProbe("tss", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 407.708, Unit.valueOf("mV"), 2026.152, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(DO.class, DO.UNIT, 0.012, -5.038, 0, Unit.valueOf("mg/L"), 20, Unit.valueOf("mg/L"));
+		createProbe("oxigen", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 404.881, Unit.valueOf("mV"), 2027.685, Unit.valueOf("mV"));
+		logicalEp = createEpInterface(Temperature.class, Unit.valueOf("°C"), 0.040, -21.217, -5, Unit.valueOf("°C"), 60, Unit.valueOf("°C"));
+		createProbe("temperature", physicalEp, logicalEp);
+		physicalEp = createEpInterface(ElectricPotential.class, MILLI(VOLT), 1.0, 0.0, 0, Unit.valueOf("V"), 10, Unit.valueOf("V"));
+		logicalEp = createEpInterface(Flow.class, Flow.UNIT, 0.010, 0.0, 0, Unit.valueOf("m^3/h"), 100, Unit.valueOf("m^3/h"));
+		createProbe("flow", physicalEp, logicalEp);
+		
+		// IRPump
+		
+		new ActuableDevice("pump", "Watson&Marlov", "model", "series", "serial", null, null); // TODO ID = IRPump
+		new ActuableDevice("ERPump", "Watson&Marlov", "model", "series", "serial", null, null); // ID = ERPump
+		new ActuableDevice("InPump", "Watson&Marlov", "model", "series", "serial", null, null); // ID = InPump
+		new ActuableDevice("Areatore", "marca", "model", "series", "serial", null, null); // ID = Areatore
+		
+		// TODO Elettrovalvola (?)
+		
+		// Connessioni
+
+		new IPConnection(null, Endpoint.fromID("DT80", "ETHERNET_PORT"), ip, port); // TODO
+		
+		createConnection("dt80", "1(+#)", "orp_anox", "SOURCE");
+		createConnection("dt80", "1(-#)", "ph_anox", "SOURCE");
+		createConnection("dt80", "1(*#)", "nh4_anox", "SOURCE");
+		createConnection("dt80", "2(-#)", "no3_anox", "SOURCE");
+		
+		createConnection("dt80", "2(*#)", "orp_ox", "SOURCE");
+		createConnection("dt80", "3(*#)", "ph_ox", "SOURCE");
+		createConnection("dt80", "5(*#)", "nh4_ox", "SOURCE");
+		createConnection("dt80", "4(*#)", "no3_ox", "SOURCE");
+		
+		createConnection("dt80", "4(+-)", "tss", "SOURCE");
+		createConnection("dt80", "3(+-)", "oxigen", "SOURCE");
+		createConnection("dt80", "2(+#)", "temperature", "SOURCE");
+		createConnection("dt80", "5(+-)", "flow", "SOURCE");
+		
+		// Host Connection
+		createConnection("dt80", "HOST_RS232_PORT", "adam", "RS232");
+		
+		// Adam Slave Device (Pump) Connection
+		createConnection("ADAM", "01S0C0Current", "PUMP", "CMD_PORT"); // TODO ID = IRPump
+		createConnection("ADAM", "01S0C1Current", "ERPump", "CMD_PORT"); // ID = ERPUMP
+		createConnection("ADAM", "01S0C2Current", "InPump", "CMD_PORT"); // ID = INPUMP
+		createConnection("ADAM", "01S0C3Current", "Areatore", "CMD_PORT"); // ID = AREATORE
+		
+		// TODO Elettrovalvola (?)
+		
+		// TODO aggiungere in modo coerente con i test
+		// createConnection("adam", "", "internal_recycle_pump", "CMD_PORT");
+		//
+		setupDT80EndpointInterfaces();
+		
+		// Setup DCG:
+		
+		/*
+		DeviceCommandGeneratorFactory.getInstance().add(new DT80DeviceCommandGenerator((DT80Device)Device.fromID("dt80")));
+		
+		DeviceCommandGeneratorFactory.getInstance().add(new Adam5000DeviceCommandGenerator((Adam5000Device)Device.fromID("adam")));
+		
+		// Sonde
+		for (Device probe : Device.getSystemDevices()) {
+			if (probe instanceof ProbeDevice)
+				DeviceCommandGeneratorFactory.getInstance().add(new ProbeDeviceCommandGenerator((ProbeDevice)probe));
+		}
+		
+		DeviceCommandGeneratorFactory.getInstance().add(new ActuableDeviceCommandGenerator((ActuableDevice)Device.fromID("pump")));
+		*/
+	}
+	
+	public MulePlant(String ip, int port) {
+		MulePlant.setup(ip, port);
+	}
+	
+	// TODO Interfaccia (IPlant)...
+	
+	public Device[] getDevices() {
+		return Device.getRootDevices(); // TODO
+	}
+	
+	public String getId() {
+		return "Mulo";
+	}
+}

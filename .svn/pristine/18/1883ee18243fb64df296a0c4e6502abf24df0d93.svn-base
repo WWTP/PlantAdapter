@@ -1,0 +1,54 @@
+package testbench;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.SocketException;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import plantadapter.IPlantCallbackReceiver;
+import plantadapter.PlantAdapter;
+import plantadapter.excpts.PlantConfigurationException;
+import plantmodel.dt80.DT80Utils;
+import plants.MulePlant;
+import tests.plantadapter.CommandChecker;
+import tests.plantadapter.InputGenerator;
+import utils.PlantObserver;
+
+public class PlantAdapterTestbench {
+
+	private IPlantCallbackReceiver observer;
+	private PlantAdapter plant;
+	
+	// TODO Eccezioni...
+	public PlantAdapterTestbench() throws InterruptedException, PlantConfigurationException, IOException { // TODO Consenti di specificare il modello da utilizzare (non sempre MulePlant)...
+		
+		ServerSocket dummyServer = new ServerSocket();
+
+		dummyServer.setReuseAddress(true);
+		// usati per sincronizzare il thread che accetta la richiesta  di connessione con quello corrente
+		Lock lock = new ReentrantLock();
+		Condition condition = lock.newCondition();
+		// acquisisco il lock
+		lock.lock();
+		
+		ServerActivationThread serverActivator = new ServerActivationThread(dummyServer, lock, condition);
+		serverActivator.start();
+		
+		MulePlant model = new MulePlant("127.0.0.1", dummyServer.getLocalPort());
+
+		this.observer = new PlantObserver(System.out, System.err); // TODO Generalizza...
+		
+		this.plant = PlantAdapter.newInstance(model.getId(), model.getDevices(), this.observer); // TODO Eccezioni per connessioni non riuscite o altro, ora o dopo (?)
+		
+		// rilascia il lock e attende
+		condition.await();
+		
+		// dummyServer rappresenta essenzialmente il DT80: il suo input riceve i comandi e il suo output emette i dati
+		//checker = new CommandChecker(serverActivator.getInputStream(), DT80Utils.Info.InputFormatDescriptor.getInstance());
+		//inputGen = new InputGenerator(serverActivator.getOutputStream());
+	}
+	
+	// TODO public InetAddress 
+}

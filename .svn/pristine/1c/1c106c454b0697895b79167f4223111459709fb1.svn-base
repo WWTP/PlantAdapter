@@ -1,0 +1,93 @@
+package plantadapter.parsers.impl;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.measure.quantity.DataAmount;
+
+import org.jscience.physics.amount.Amount;
+
+import plantadapter.commands.DeviceCommand;
+import plantadapter.commands.ReadCommand;
+import plantadapter.parsers.IParsingStrategy;
+import plantadapter.results.SingleResult;
+import plantmodel.IDeviceIOData;
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Device;
+import plantmodel.dt80.DT80Utils;
+import plantmodel.dt80.DT80Utils.Info.FixedFormatFields;
+import quantities.AnalogueAmount;
+
+/* Definire se lo Scaling è nelle classi di modello o se vi è un Adapter che lo aggiunge;
+ * inoltre forse sarebbe opportuno evitare questo passaggio e fare si che l'uscita dei dispositivi
+ * fosse esattamente ciò che l'utilizzatore ha richiesto.
+ */
+
+/**
+ * <p>Questa classe suppone che gli output del <code>DT80</code> siano in <i>fixed format</i>.</p>
+ * @author JCC
+ *
+ */
+public class DT80InputParser extends AbstractInputParser {
+
+	public DT80InputParser(DT80Device dt80) {
+		super(dt80);
+	}
+	
+	@Override
+	protected IDeviceIOData convertToDeviceIODataType(IDeviceIOData input) {
+		return new ASCIIString(input.toByteArray());
+	}
+	
+	@Override
+	protected IDeviceIOData[] tokenizeInput(IDeviceIOData input) {
+		ASCIIString ascii = (ASCIIString)input; // Verifica del tipo già fatta da AbstractInputParser
+		List<ASCIIString> tokens = new LinkedList<ASCIIString>();
+		int fieldIndex = 0;
+		String field;
+		// Legge tutti i campi dell'input contenenti dei valori risultati da un campionamento
+		while ((field = DT80Utils.readFixedFormat(ascii, FixedFormatFields.VALUE, fieldIndex)) != "") {
+			tokens.add(new ASCIIString(field));
+			fieldIndex++;
+		}
+		return tokens.toArray(new ASCIIString[0]);
+	}
+	
+	protected IParsingStrategy getParsingStrategy(DeviceCommand cmd) {
+		if (cmd instanceof ReadCommand && !(((ReadCommand)cmd).getQuantity().equals(DataAmount.class))) {
+			return new AnalogueReadCommandParsingStrategy((DT80Device)super.getDevice());
+		}
+		// TODO Altri tipi di comandi gestibili...
+		throw new IllegalArgumentException("Comando non riconosciuto.");
+	}
+
+	@Override
+	protected SingleResult parse(ReadCommand cmd, IDeviceIOData token) {
+		DT80Device dt80 = (DT80Device)super.getDevice();
+		if (!dt80.isMasterOf(cmd.getTargetDevice()))
+			throw new IllegalStateException("Comando non diretto ad uno slave del dispositivo"); // TODO
+		SingleResult result = this.getParsingStrategy(cmd).parse(token, cmd);
+		if (result == null)
+			throw new IllegalStateException("Errore nella lettura dell'input relativo al comando " + cmd.getCommandID());
+		return result;
+	}
+	
+	protected static class AnalogueReadCommandParsingStrategy implements IParsingStrategy {
+		
+		private DT80Device dt80;
+		
+		public AnalogueReadCommandParsingStrategy(DT80Device dt80) {
+			this.dt80 = dt80;
+		}
+		
+		@Override
+		public SingleResult parse(IDeviceIOData input, DeviceCommand command) {
+			ReadCommand rdCmd = (ReadCommand)command;
+			double scaledValue = AbstractInputParser.getScalingTransformation(dt80, rdCmd).scale(Double.valueOf(input.toString()));
+			return new SingleResult(
+					new AnalogueAmount(
+							rdCmd.getQuantity(), 
+							Amount.valueOf(scaledValue, AbstractInputParser.getResponseMeasurementUnit(dt80, rdCmd))), rdCmd); 
+		}
+	}
+}

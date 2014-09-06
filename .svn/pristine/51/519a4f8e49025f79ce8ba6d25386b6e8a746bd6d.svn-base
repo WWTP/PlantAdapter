@@ -1,0 +1,52 @@
+package plantadapter.cmdgen.adapters;
+
+import plantadapter.commands.PortCommand;
+import plantadapter.commands.WriteCommand;
+import plantmodel.Device;
+import plantmodel.Endpoint;
+
+public class WriteCommandAdapter extends WriteCommand implements ICommandAdapter {
+	
+	// usato per evitare di cambiare il livello di protezione
+	// degli attributi della classe base
+	private EndpointAdapter innerAdp;
+	private WriteCommand innerCmd;
+	
+	public WriteCommandAdapter(WriteCommand writeCommand)
+	{
+		this(writeCommand, writeCommand.getTargetPort());
+	}
+	
+	public WriteCommandAdapter(WriteCommand writeCommand, Endpoint endpoint)
+	{
+		super(
+				writeCommand.getCommandID(),
+				writeCommand.getTimestamp(),
+				endpoint,
+				writeCommand.getValue()
+		);
+		
+		this.innerAdp = new EndpointAdapter(endpoint);
+		this.innerCmd = writeCommand;
+	}
+	
+	@Override
+	public PortCommand getAdaptedCommand() {
+		return this.innerCmd;
+	}
+
+	@Override
+	public void setEndpoint(Endpoint e) {
+		this.innerAdp.setEndpoint(e);
+	}
+	
+	@Override
+	public Endpoint getTargetPort() {
+		return this.innerAdp.getTargetPort();
+	}
+	
+	@Override
+	public Device getTargetDevice()	{
+		return this.innerAdp.getTargetDevice();
+	}
+}

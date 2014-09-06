@@ -1,0 +1,59 @@
+package plantmodel.dt80;
+
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Utils.Info.ScheduleFrequencyUnits;
+import plantmodel.dt80.DT80Utils.Info.ScheduleIds;
+
+public class DT80ScheduleDefinition implements IDT80Entity {
+
+	private final ScheduleIds id;
+	private final String name;
+	private final int times; // TODO Trigger...
+	private final ScheduleFrequencyUnits frequency; // TODO Trigger...
+	private final DT80ChannelDefinitionList channelDefinitions;
+	
+	public DT80ScheduleDefinition(ScheduleIds id, String name, int times, ScheduleFrequencyUnits frequency, DT80ChannelDefinitionList channelDefinitions) {
+		if (name.length() > 8)
+			throw new IllegalArgumentException("Nome schedule non valido (max 8 caratteri).");
+		// Inizializzazione Campi
+		this.id = id;
+		this.name = name;
+		this.times = times;
+		this.frequency = frequency;
+		this.channelDefinitions = channelDefinitions;
+	}
+	
+	// Accessors
+	
+	public ScheduleIds getScheduleId() {
+		return this.id;
+	}
+	
+	public String getScheduleName() {
+		return this.name;
+	}
+	
+	public int getTimes() {
+		return this.times;
+	}
+	
+	public ScheduleFrequencyUnits getFrequency() {
+		return this.frequency;
+	}
+	
+	public DT80ChannelDefinitionList getChannelDefinitions() {
+		return this.channelDefinitions;
+	}
+	
+	// DT80Entity
+	
+	@Override
+	public ASCIIString getDT80Syntax() {
+		return ASCIIString.concat(
+				this.id.getDT80Syntax(),
+				ASCIIString.fromString(this.name),
+				ASCIIString.fromString("" + this.times),
+				this.frequency.getDT80Syntax(),
+				this.channelDefinitions.getDT80Syntax());
+	}
+}

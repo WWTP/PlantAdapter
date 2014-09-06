@@ -1,0 +1,269 @@
+package plantmodel;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.measure.quantity.Quantity;
+
+import quantities.DigitalQuantity;
+
+/* TODO La classe non garantisce l'univocità degli ID degli Endpoint all'interno di un Device, 
+ * né la loro effettiva associazione al Device. Chi invoca il costruttore deve garantire queste due proprietà.
+ */
+
+public class Endpoint {
+	
+	// Public Static Methods
+	
+	public static Endpoint fromID(String deviceID, String endpointID) {
+		for (Endpoint e : Device.fromID(deviceID).getEndpoints()) {
+			if (e.getID().equalsIgnoreCase(endpointID))
+				return e;
+		}
+		return null;
+	}
+	
+	// Private Static Methods
+	
+	private static boolean checkPreferredInterface(IEndpointInterface[] interfaces, IEndpointInterface preferredInterface) {
+		if (preferredInterface != null) {
+			boolean check = false;
+			for (IEndpointInterface ie : interfaces) if (ie == preferredInterface) check = true;
+			return check;
+		}
+		return true;
+	}
+	
+	// Instance Fields
+	
+	private final String id;
+	private final List<Connection> connections;
+	// Cache
+	private Device owner; // TODO
+	
+	private final IEndpointInterface[] physicalInterfaces;
+	private IEndpointInterface preferredInterface;
+	
+	private final List<IEndpointInterface> logicalInterfaces;
+	
+	// Public Constructors
+
+	public Endpoint(String id, IEndpointInterface[] physicalInterfaces, IEndpointInterface preferredInterface) { // TODO Non si ha la garanzia dell'associazione fra Endpoint e Device sin dal momento della costruzione (!)
+		if (physicalInterfaces.length < 1)
+			throw new IllegalArgumentException("Un Endpoint deve avere almeno un'interfaccia fisica.");
+		// Controllo consistenza preferredInterface
+		if (!checkPreferredInterface(physicalInterfaces, preferredInterface)) 
+			throw new IllegalArgumentException("EndpointInterface preferita deve essere tra quelle dell'Endpoint.");
+		// Iniziazzazione Campi
+		this.id = id;
+		this.connections = new ArrayList<Connection>();
+		this.owner = null; // TODO
+		// Iniziazzazione EndpointInterface
+		this.physicalInterfaces = physicalInterfaces.clone();
+		this.preferredInterface = preferredInterface;
+		this.logicalInterfaces = new ArrayList<IEndpointInterface>();
+	}
+	
+	public Endpoint(String id, IEndpointInterface preferredInterface) {
+		this(id, new IEndpointInterface[] { preferredInterface }, preferredInterface);
+	}
+	
+	public Endpoint(String id, IEndpointInterface[] physicalInterfaces) {
+		this(id, physicalInterfaces, null);
+	}
+
+	// Accessors
+
+	public String getID() {
+		return this.id;
+	}
+	
+	/**
+	 * <p>Restituisce il <code>Device</code> a cui è associato l'<code>Endpoint</code> corrente.</p>
+	 * @return
+	 */
+	public Device getDevice() { // TODO Non si ha la garanzia dell'associazione fra Endpoint e Device sin dal momento della costruzione (!)
+		if (this.owner == null) {
+			for (Device d : Device.getSystemDevices())
+				if (d.contains(this)) this.owner = d;
+			if (this.owner == null)
+				throw new IllegalStateException("Nessun Device associato all'Endpoint corrente.");
+		}
+		return this.owner;
+	}
+	
+	// Interfaces
+	
+	public IEndpointInterface[] getInterfaces() {
+		List<IEndpointInterface> eiList = new LinkedList<IEndpointInterface>();
+		for (IEndpointInterface cnn : this.getPhysicalInterfaces()) {
+			eiList.add(cnn);
+		}
+		for (IEndpointInterface cnn : this.getLogicalInterfaces()) {
+			eiList.add(cnn);
+		}
+		return eiList.toArray(new IEndpointInterface[0]);
+	}
+	
+	public IEndpointInterface[] getEndpointInterfacesForQuantity(Class<? extends Quantity> quantity) {
+		List<IEndpointInterface> eiList = new LinkedList<IEndpointInterface>();
+		for (IEndpointInterface cnn : this.getPhysicalInterfacesForQuantity(quantity)) {
+			eiList.add(cnn);
+		}
+		for (IEndpointInterface cnn : this.getLogicalInterfacesForQuantity(quantity)) {
+			eiList.add(cnn);
+		}
+		return eiList.toArray(new AnalogueEndpointInterface[0]);
+	}
+	
+	public boolean hasEndpointInterfaceForQuantity(Class<? extends Quantity> quantity) {
+		return this.getEndpointInterfacesForQuantity(quantity).length > 0;
+	}
+	
+	// PhysicalInterfaces
+	
+	public IEndpointInterface[] getPhysicalInterfaces() {
+		return this.physicalInterfaces.clone();
+	}
+	
+	public IEndpointInterface[] getPhysicalInterfacesForQuantity(Class<? extends Quantity> quantity) {
+		List<IEndpointInterface> l = new LinkedList<IEndpointInterface>();
+		for (IEndpointInterface ei : this.physicalInterfaces) {
+			if (ei.getQuantity().equals(quantity)) l.add(ei);
+		}
+		return l.toArray(new AnalogueEndpointInterface[0]);
+	}
+	
+	// PreferredInterface
+	
+	public IEndpointInterface getPreferredInterface() {
+		return this.preferredInterface;
+	}
+	
+	// TODO Verificare possibilità di modificarlo se fornito all'atto della costruzione...
+	public void setPreferredInterface(IEndpointInterface ei) {
+		if (checkPreferredInterface(this.physicalInterfaces, ei))
+				this.preferredInterface = ei;
+		else throw new IllegalArgumentException("EndpointInterface preferita deve essere tra quelle dell'Endpoint.");
+	}
+
+	// Logical Interfaces
+	
+	public IEndpointInterface[] getLogicalInterfaces() {
+		return this.logicalInterfaces.toArray(new IEndpointInterface[0]);
+	}
+	
+	public void addLogicalInterface(IEndpointInterface ei) {
+		this.logicalInterfaces.add(ei);
+	}
+	
+	public void removeLogicalInterface(IEndpointInterface ei) {
+		this.logicalInterfaces.remove(ei);
+	}
+	
+	public IEndpointInterface[] getLogicalInterfacesForQuantity(Class<? extends Quantity> quantity) {
+		List<IEndpointInterface> l = new LinkedList<IEndpointInterface>();
+		for (IEndpointInterface ei : this.logicalInterfaces) {
+			if (ei.getQuantity().equals(quantity)) l.add(ei);
+		}
+		return l.toArray(new IEndpointInterface[0]);
+	}
+	
+	// Public Instance Methods
+	
+	// Connections
+	
+	/**
+	 * <p>Restituisce l'insieme delle connessioni di cui fa parte l'<code>Endpoint</code> corrente, come <i>master</i> o come <i>slave</i>.</p>
+	 * @return
+	 */
+	public Connection[] getConnections() {
+		return new Connection[] { Connection.fromEndpoint(this) };
+	}
+	
+	// TODO public void addConnection(Connection connection) ?
+	
+	/**
+	 * <p>Restituisce l'insieme delle connessioni di cui l'<code>Endpoint</code> corrente è <i>master</i>.</p>
+	 * @return
+	 */
+	public Connection[] getConnectionsAsMaster() {
+		Connection[] myConnections = this.getConnections();
+		Connection[] connectionsAsMaster = new Connection[myConnections.length];
+		int length=0;
+		
+		for(Connection connection : myConnections){
+			if(connection.getMasterEndpoint() == this)
+				connectionsAsMaster[length++]=connection;
+		}
+		
+		return Arrays.copyOf(connectionsAsMaster, length);
+	}
+	
+	/**
+	 * <p>Restituisce l'insieme delle connessioni di cui l'<code>Endpoint</code> corrente è <i>slave</i>.</p>
+	 * @return
+	 */
+	public Connection[] getConnectionsAsSlave() {
+		Connection[] myConnections = this.getConnections();
+		Connection[] connectionsAsMaster = new Connection[myConnections.length];
+		int length=0;
+		
+		for(Connection connection : myConnections){
+			if(connection.getSlaveEndpoint() == this)
+				connectionsAsMaster[length++]=connection;
+		}
+		
+		return Arrays.copyOf(connectionsAsMaster, length);
+	}
+	
+	// Devices
+	
+	/**
+	 * <p>Ritorna l'insieme di tutti i <code>Device</code> di cui l'<code>Endpoint</code> è <i>master</i>.</p>
+	 * @return insieme di tutti i <code>Device</code> di cui l'<code>Endpoint</code> è <i>master</i>.
+	 */
+	public Device[] getMasterDevices() {
+		List<Device> list = new ArrayList<Device>();
+		for(Connection connection : this.getConnectionsAsSlave()){
+			list.add(connection.getMasterDevice());
+		}
+		return list.toArray(new Device[0]);
+	}
+	
+	/**
+	 * <p>Ritorna l'insieme di tutti i <code>Device</code> di cui l'<code>Endpoint</code> è <i>slave</i>.</p>
+	 * @return insieme di tutti i <code>Device</code> di cui l'<code>Endpoint</code> è <i>slave</i>.
+	 */
+	public Device[] getSlaveDevices() {
+		List<Device> list = new ArrayList<Device>();
+		for(Connection connection : this.getConnectionsAsMaster()){
+			list.add(connection.getSlaveDevice());
+		}
+		return list.toArray(new Device[0]);
+	}
+	
+	// Predicates
+	
+	public boolean hasPreferredInterface() {
+		return this.preferredInterface != null;
+	}
+	
+	public boolean isPreferredInterface(AnalogueEndpointInterface i) {
+		return this.preferredInterface == i;
+	}
+	
+	public boolean isPreferredQuantity(Class<? extends Quantity> q) {
+		return this.preferredInterface.getQuantity().equals(q);
+	}
+	
+	// Object
+	
+	@Override
+	public String toString() {
+		return this.getID() + "[" + this.getDevice().getID() + "]";
+		//return "";
+	}
+}

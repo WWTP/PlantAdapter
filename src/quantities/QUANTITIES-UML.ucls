@@ -1,0 +1,165 @@
+<class-diagram version="1.0.10" icons="true" always-add-relationships="false" generalizations="true" realizations="true" 
+  associations="true" dependencies="false" nesting-relationships="true">  
+  <class id="1" corner="BOTTOM_RIGHT" language="java" name="quantities.AnalogueAmount" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/AnalogueAmount.java" binary="false">    
+    <position height="-1" width="-1" x="225" y="388"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </class>  
+  <interface id="2" corner="BOTTOM_RIGHT" language="java" name="quantities.IAmount" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/IAmount.java" binary="false">    
+    <position height="78" width="220" x="317" y="142"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <class id="3" corner="BOTTOM_RIGHT" language="java" name="quantities.InformationAmount" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/InformationAmount.java" binary="false">    
+    <position height="-1" width="-1" x="638" y="380"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </class>  
+  <enumeration id="4" corner="BOTTOM_RIGHT" language="java" name="quantities.InformationEncoding" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/InformationEncoding.java" binary="false">    
+    <position height="-1" width="-1" x="861" y="101"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </enumeration>  
+  <interface id="5" corner="BOTTOM_RIGHT" language="java" name="javax.measure.quantity.Quantity" project="PlantAdapter" 
+    file="/PlantAdapter/lib/jscience.jar" binary="true">    
+    <position height="-1" width="-1" x="1435" y="206"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="6" corner="BOTTOM_RIGHT" language="java" name="quantities.Flow" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/Flow.java" binary="false">    
+    <position height="-1" width="-1" x="1213" y="131"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="7" corner="BOTTOM_RIGHT" language="java" name="quantities.NO3" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/NO3.java" binary="false">    
+    <position height="-1" width="-1" x="1211" y="242"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="8" corner="BOTTOM_RIGHT" language="java" name="quantities.TSS" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/TSS.java" binary="false">    
+    <position height="-1" width="-1" x="1211" y="359"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="9" corner="BOTTOM_RIGHT" language="java" name="quantities.ORP" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/ORP.java" binary="false">    
+    <position height="-1" width="-1" x="1364" y="487"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="10" corner="BOTTOM_RIGHT" language="java" name="quantities.NH4" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/NH4.java" binary="false">    
+    <position height="-1" width="-1" x="1527" y="488"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="11" corner="BOTTOM_RIGHT" language="java" name="quantities.PH" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/PH.java" binary="false">    
+    <position height="-1" width="-1" x="1675" y="336"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="12" corner="BOTTOM_RIGHT" language="java" name="quantities.DO" project="PlantAdapter" 
+    file="/PlantAdapter/src/quantities/DO.java" binary="false">    
+    <position height="-1" width="-1" x="1669" y="487"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="13" corner="BOTTOM_RIGHT" language="java" name="javax.measure.quantity.ElectricPotential" 
+    project="PlantAdapter" file="/PlantAdapter/lib/jscience.jar" binary="true">    
+    <position height="-1" width="-1" x="1364" y="363"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <interface id="14" corner="BOTTOM_RIGHT" language="java" name="javax.measure.quantity.Dimensionless" 
+    project="PlantAdapter" file="/PlantAdapter/lib/jscience.jar" binary="true">    
+    <position height="-1" width="-1" x="1675" y="206"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true"/>      
+      <operations public="true" package="true" protected="true" private="true"/>    
+    </display>  
+  </interface>  
+  <generalization id="15">    
+    <end type="SOURCE" refId="11"/>    
+    <end type="TARGET" refId="14"/>  
+  </generalization>  
+  <generalization id="16">    
+    <end type="SOURCE" refId="8"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <generalization id="17">    
+    <end type="SOURCE" refId="9"/>    
+    <end type="TARGET" refId="13"/>  
+  </generalization>  
+  <generalization id="18">    
+    <end type="SOURCE" refId="14"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <realization id="19">    
+    <end type="SOURCE" refId="1"/>    
+    <end type="TARGET" refId="2"/>  
+  </realization>  
+  <generalization id="20">    
+    <end type="SOURCE" refId="13"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <generalization id="21">    
+    <end type="SOURCE" refId="7"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <generalization id="22">    
+    <end type="SOURCE" refId="6"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <generalization id="23">    
+    <end type="SOURCE" refId="12"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <generalization id="24">    
+    <end type="SOURCE" refId="10"/>    
+    <end type="TARGET" refId="5"/>  
+  </generalization>  
+  <realization id="25">    
+    <end type="SOURCE" refId="3"/>    
+    <end type="TARGET" refId="2"/>  
+  </realization>  
+  <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+    visibility="true">    
+    <attributes public="true" package="true" protected="true" private="true"/>    
+    <operations public="true" package="true" protected="true" private="true"/>  
+  </classifier-display>  
+  <association-display labels="true" multiplicity="true"/>
+</class-diagram>

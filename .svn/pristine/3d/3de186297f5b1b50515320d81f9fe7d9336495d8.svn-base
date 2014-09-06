@@ -1,0 +1,63 @@
+package gui;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.JFrame;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+public class SliderControl extends JFrame  {
+
+	private List<ISliderListener> listeners;
+	private JSlider slider;
+	
+	private boolean eventLock;
+	
+	public SliderControl() {
+		
+		this.listeners = new ArrayList<ISliderListener>();
+		
+		slider = new JSlider(JSlider.VERTICAL);
+		
+		this.add(slider);
+		slider.addChangeListener(new SliderListener());
+		
+		this.eventLock = false;
+		
+		this.pack();
+	}
+	
+	public void addSliderListener(ISliderListener listener) {
+		this.listeners.add(listener);
+	}
+	
+	public void setSliderValue(int perc) {
+		this.eventLock = true;
+		this.slider.setValue(perc);
+		this.eventLock = false;
+	}
+
+	// TODO remove() etc.
+	
+	public interface ISliderListener {
+		public void percChanged(float perc);
+	}
+	
+	private class SliderListener implements ChangeListener {
+
+		@Override
+		public void stateChanged(ChangeEvent e) {
+			
+			if (!eventLock) {
+				JSlider slider = (JSlider)e.getSource();
+				float perc = ((float)slider.getValue()) / 100;
+				
+				for (ISliderListener lst : listeners) {
+					lst.percChanged(perc);
+				}
+			}
+		}
+	}
+}

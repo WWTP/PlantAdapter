@@ -1,0 +1,33 @@
+package plantadapter.commands.sched;
+
+import plantadapter.IPlant;
+
+import plantadapter.commands.Command;
+import plantadapter.commands.ScheduleSubscriptionCommand;
+import plantadapter.communication.ISink;
+import plantadapter.schedules.SystemScheduleDefinition;
+
+public class PlantScheduleSubscriptionCommandExecutor implements ISink<Command> {
+	
+	private IPlant plant;
+	
+	public PlantScheduleSubscriptionCommandExecutor(IPlant plant) {
+		this.plant = plant;
+	}
+
+	@Override
+	public void put(Command message) throws Exception {
+		
+		if (!(message instanceof ScheduleSubscriptionCommand))
+			throw new IllegalArgumentException();
+		
+		ScheduleSubscriptionCommand subscription = (ScheduleSubscriptionCommand)message;
+		// Aggiunge chi ha inviato il comando agli Observers registrati per la Schedule
+		SystemScheduleDefinition schedule = SystemScheduleDefinition.byId(subscription.getScheduleID());
+		schedule.subscribe(
+				plant.getCommandLogger().getInputObserver(subscription), 
+				plant.getCommandLogger().getErrorObserver(subscription));
+
+		plant.getCommandLogger().unlog(subscription);
+	}
+}

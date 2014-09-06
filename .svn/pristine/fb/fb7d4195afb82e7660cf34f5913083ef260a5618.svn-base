@@ -1,0 +1,60 @@
+package testbench;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+
+abstract class ServerActivationThread extends Thread
+{
+	private Lock lock;
+	private Condition condition;
+	
+	public ServerActivationThread() {
+		this.lock = null;
+		this.condition = null;
+	}
+	
+	public void setSync(Lock lock, Condition condition) {
+		this.lock = lock;
+		this.condition = condition;
+	}
+	
+	public abstract void acceptRequest() throws IOException;
+	
+	@Override
+	public void run() {
+		if (this.lock == null)
+			throw new IllegalStateException("ServerActivationThread: this.lock == null");
+		
+		// attende di acquisire il lock
+		this.lock.lock();
+		
+		// accettazione richiesta
+		try 
+		{
+			this.acceptRequest();
+		} 
+		catch (IOException e) {
+			// TODO
+		}
+		
+		// libera il lock e termina
+		this.condition.signal();
+		this.lock.unlock();
+	}
+	
+	/**
+	 * 
+	 * @return null se non è possibile ottenere lo stream.
+	 */
+	public abstract InputStream getInputStream();
+
+	/**
+	 * 
+	 * @return null se non è possibile ottenere lo stream.
+	 */
+	public abstract OutputStream getOutputStream();
+}

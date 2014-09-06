@@ -1,0 +1,304 @@
+package tests.plantadapter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.measure.quantity.ElectricCurrent;
+import javax.measure.quantity.ElectricPotential;
+import javax.measure.quantity.Quantity;
+
+import org.jscience.physics.amount.Amount;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import plantadapter.IPlantCallbackReceiver;
+import plantadapter.PlantAdapter;
+import plantadapter.commands.ReadCommand;
+import plantadapter.commands.ScheduleSubscriptionCommand;
+import plantadapter.commands.WriteCommand;
+import plantadapter.commands.adam.Adam5024LastValueReadBackCommand;
+import plantadapter.excpts.CommandFailureException;
+import plantadapter.excpts.PlantAdapterException;
+import plantadapter.excpts.PlantConfigurationException;
+import plantadapter.results.Result;
+import plantadapter.schedules.SystemScheduleDefinition;
+
+import plantmodel.Device;
+import plantmodel.adam.Adam5000Device;
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Utils;
+import plantmodel.dt80.DT80Utils.Info.ScheduleIds;
+
+import plants.MulePlant;
+
+import quantities.AnalogueAmount;
+import quantities.Flow;
+import quantities.IAmount;
+import quantities.InformationAmount;
+import quantities.NO3;
+import quantities.ORP;
+
+import tests.model.ModelTest;
+
+/* ESEMPIO DI OUTPUT A CONSOLE IN CASO DI TEST ESEGUITO CON SUCCESSO */
+
+/*
+1+V(S2)
+2-V(S6)
+5V(S12)
+1+V
+ModelTest_2 Sat Oct 13 20:26:51 CEST 2012 { (1.0 ± 5.6E-17) mV [Read(ORP) SOURCE[orp_anox] @orp_anox (ORP_Anox)], (2.0 ± 1.1E-16)  [Read(PH) SOURCE[ph_anox] @ph_anox (pH_Anox)], (3.0 ± 2.2E-16) mg/L [Read(NH4) SOURCE[nh4_anox] @nh4_anox (NH4_Anox)], (4.0 ± 2.2E-16) ? [Read(Temperature) SOURCE[temperature] @temperature (Temperature)], (5.0 ± 4.4E-16) mg/L [Read(NO3) SOURCE[no3_anox] @no3_anox (NO3_Anox)], (6.0 ± 4.4E-16) mV [Read(ORP) SOURCE[orp_ox] @orp_ox (ORP_Ox)], (7.0 ± 4.4E-16) mg/L [Read(DO) SOURCE[oxigen] @oxigen (Oxigen)], (8.0 ± 4.4E-16)  [Read(PH) SOURCE[ph_ox] @ph_ox (pH_Ox)], (9.0 ± 8.9E-16) mg/L [Read(TSS) SOURCE[tss] @tss (TSS)], (10.0 ± 8.9E-16) mg/L [Read(NO3) SOURCE[no3_ox] @no3_ox (NO3_Ox)], (11.0 ± 8.9E-16) m³/h [Read(Flow) SOURCE[flow] @flow (Flow)], (12.0 ± 8.9E-16) mg/L [Read(NH4) SOURCE[nh4_ox] @nh4_ox (NH4_Ox)] }
+ModelTest_2 Sat Oct 13 20:26:51 CEST 2012 { (1.0 ± 5.6E-17) mV [Read(ORP) SOURCE[orp_anox] @orp_anox (ORP_Anox)], (2.0 ± 1.1E-16)  [Read(PH) SOURCE[ph_anox] @ph_anox (pH_Anox)], (3.0 ± 2.2E-16) mg/L [Read(NH4) SOURCE[nh4_anox] @nh4_anox (NH4_Anox)], (4.0 ± 2.2E-16) ? [Read(Temperature) SOURCE[temperature] @temperature (Temperature)], (5.0 ± 4.4E-16) mg/L [Read(NO3) SOURCE[no3_anox] @no3_anox (NO3_Anox)], (6.0 ± 4.4E-16) mV [Read(ORP) SOURCE[orp_ox] @orp_ox (ORP_Ox)], (7.0 ± 4.4E-16) mg/L [Read(DO) SOURCE[oxigen] @oxigen (Oxigen)], (8.0 ± 4.4E-16)  [Read(PH) SOURCE[ph_ox] @ph_ox (pH_Ox)], (9.0 ± 8.9E-16) mg/L [Read(TSS) SOURCE[tss] @tss (TSS)], (10.0 ± 8.9E-16) mg/L [Read(NO3) SOURCE[no3_ox] @no3_ox (NO3_Ox)], (11.0 ± 8.9E-16) m³/h [Read(Flow) SOURCE[flow] @flow (Flow)], (12.0 ± 8.9E-16) mg/L [Read(NH4) SOURCE[nh4_ox] @nh4_ox (NH4_Ox)] }
+2SERIAL("{#01S0C015.000\013}")
+2SERIAL("{CIAO}")
+/H
+Sat Oct 13 20:26:51 CEST 2012 { (500.0 ± 2.8E-14) mV [Read(ORP) SOURCE[orp_anox] @orp_anox (3bdf851f-1c16-46f9-8207-2b0ba9a5f055)] }
+Sat Oct 13 20:26:51 CEST 2012 { (600.0 ± 5.7E-14) mg/L [Read(NO3) SOURCE[no3_anox] @no3_anox (ea20b4f3-4418-4880-bc03-8c4fcd626c83)] }
+Sat Oct 13 20:26:51 CEST 2012 { (700.0 ± 5.7E-14) m³/h [Read(Flow) SOURCE[flow] @flow (a1910860-6649-4ebf-a6d5-92bb348e807e)] }
+Sat Oct 13 20:26:51 CEST 2012 { (800.0 ± 5.7E-14) mV [Read(ElectricPotential) SOURCE[orp_anox] @orp_anox (e9aeefdf-3225-479c-96da-f1aac8b1c915)] }
+*/
+
+public class PlantAdapterTest {
+
+	private static PlantAdapter plant;
+	private static DummyObserver observer;
+	
+	private static CommandChecker checker;
+	private static InputGenerator inputGen;
+	
+	@BeforeClass
+	public static void setup() throws PlantConfigurationException, IOException, InterruptedException {
+		
+		ServerSocket dummyServer = new ServerSocket(2000);
+		dummyServer.setReuseAddress(true);
+		// usati per sincronizzare il thread che accetta la richiesta con quello corrente
+		Lock lock = new ReentrantLock();
+		Condition condition = lock.newCondition();
+		// acquisisco il lock
+		lock.lock();
+		
+		ServerActivationThread serverActivator = new ServerActivationThread(dummyServer, lock, condition);
+		serverActivator.start();
+		
+		MulePlant model = new MulePlant("127.0.0.1", 2000);
+
+		observer = new DummyObserver();
+		
+		plant = PlantAdapter.newInstance("Mule", model.getDevices(), observer); // TODO Eccezioni per connessioni non riuscite o altro, ora o dopo (?)
+		
+		// rilascia il lock e attende
+		condition.await();
+		
+		// dummyServer rappresenta essenzialmente il DT80: il suo input riceve i comandi e il suo output emette i dati
+		checker = new CommandChecker(serverActivator.getInputStream(), DT80Utils.Info.InputFormatDescriptor.getInstance());
+		inputGen = new InputGenerator(serverActivator.getOutputStream());
+	}
+	
+	private static class ServerActivationThread extends Thread
+	{
+		private ServerSocket server;
+		private Socket cnn;
+		
+		private Lock lock;
+		private Condition condition;
+		
+		public ServerActivationThread(ServerSocket server, Lock lock, Condition condition) {
+			this.server = server;
+			this.cnn = null;
+
+			this.lock = lock;
+			this.condition = condition;
+		}
+		
+		@Override
+		public void run() {
+			// attende di acquisire il lock
+			this.lock.lock();
+			// attende e accetta la richiesta
+			try { cnn = server.accept(); } 
+			catch (IOException e) {
+				throw new RuntimeException();
+			}
+			// libera il lock e termina
+			this.condition.signal();
+			this.lock.unlock();
+		}
+		
+		public InputStream getInputStream() {
+			if (this.cnn == null) 
+				throw new IllegalStateException();
+			try { return this.cnn.getInputStream(); } 
+			catch (IOException e) {
+				throw new RuntimeException();
+			}
+		}
+		
+		public OutputStream getOutputStream() {
+			if (this.cnn == null) throw new IllegalStateException();
+			try { return this.cnn.getOutputStream(); } 
+			catch (IOException e) {
+				throw new RuntimeException();
+			}
+		}
+	}
+	
+	@AfterClass
+	public static void sleep() throws InterruptedException {
+		//Thread.sleep(360000);
+	}
+	
+	@Test
+	public final void testSchedule() throws CommandFailureException, IOException, PlantConfigurationException, InterruptedException {
+
+		// Definizione Schedule
+		SystemScheduleDefinition schedule = ModelTest.createSchedule(); // TODO Invio comando definizione...
+		
+		// Sottoscrizione alla Schedule...
+		ScheduleSubscriptionCommand subscription = new ScheduleSubscriptionCommand(UUID.randomUUID().toString(), schedule.getScheduleId());
+		plant.sendCommand(subscription);
+		
+		inputGen.input(ScheduleIds.RA, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+		
+		inputGen.input(ScheduleIds.RA, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+	}
+	
+	public static void printNormalized(byte[] bytes) {
+		
+		/*
+		for (byte b : bytes) {
+			// TODO Normalizza caratteri non stampabili...
+			str = ASCIIString.concat(str, new ASCIIString("" + (char)b));
+		}*/
+		
+		ASCIIString str = ASCIIString.fromByteArray(bytes);
+		
+		System.out.println(str);
+	}
+	
+	public void testReadCommand(String targetDeviceId, String targetEndpointId, Class<? extends Quantity> q) throws CommandFailureException {
+		Device targetDevice = Device.fromID(targetDeviceId);
+		ReadCommand rc = new ReadCommand(UUID.randomUUID().toString(), targetDevice.getEndpointById(targetEndpointId), q);
+		plant.sendCommand(rc);
+		printNormalized(checker.getCommand());
+	}
+	
+	@Test
+	public final void readCommandTest() throws CommandFailureException, IOException {
+		
+		testReadCommand("orp_anox", "source", ORP.class);		
+		inputGen.input(DT80Utils.Info.ScheduleIds.IMMEDIATE, 500.0);
+		
+		testReadCommand("no3_anox", "source", NO3.class);
+		inputGen.input(DT80Utils.Info.ScheduleIds.IMMEDIATE, 600.0);
+		
+		testReadCommand("flow", "source", Flow.class);
+		inputGen.input(DT80Utils.Info.ScheduleIds.IMMEDIATE, 700.0);
+		
+		testReadCommand("orp_anox", "source", ElectricPotential.class);
+		inputGen.input(DT80Utils.Info.ScheduleIds.IMMEDIATE, 800.0);
+	}
+	
+	public void testWriteCommand(String targetDeviceId, String targetEndpointId, IAmount a) throws CommandFailureException {
+		Device targetDevice = Device.fromID(targetDeviceId);
+		WriteCommand wc = new WriteCommand(UUID.randomUUID().toString(), targetDevice.getEndpointById(targetEndpointId), a);
+		plant.sendCommand(wc);
+		printNormalized(checker.getCommand());
+	}
+	
+	@Test
+	public final void writeCommandTest() throws CommandFailureException, IOException {
+		
+		@SuppressWarnings("unchecked")
+		AnalogueAmount value = new AnalogueAmount(ElectricCurrent.class, (Amount<ElectricCurrent>)Amount.valueOf("15 mA"));
+		testWriteCommand("pump", "cmd_port", value);
+	}
+	
+	@Test
+	public final void serialWriteCommandTest() throws CommandFailureException {
+		IAmount data = new InformationAmount("CIAO".getBytes());
+		testWriteCommand("DT80", "HOST_RS232_PORT", data);
+	}
+	
+	@Test
+	public final void ethernetPortWriteCommandTest() throws CommandFailureException {
+		IAmount data = new InformationAmount("/H".getBytes());
+		testWriteCommand("DT80", "ETHERNET_PORT", data);
+	}
+	
+	// TODO Importante poter utilizzare questo "framework" di test anche in altri file, per separare meglio le cose...
+	
+	@Test 
+	public final void adamStatusCommandTest() throws CommandFailureException, IOException {
+		Adam5000Device adam = (Adam5000Device)Device.fromID("ADAM");
+		
+		plant.sendCommand(new Adam5024LastValueReadBackCommand(UUID.randomUUID().toString(), adam, 0, 0));
+		printNormalized(checker.getCommand());
+		inputGen.input(DT80Utils.Info.ScheduleIds.IMMEDIATE, "\"!0115.000\"");
+	}
+
+	public static String formatXML(String xml) {
+		
+		int i = 0;
+		
+		while (i < xml.length()) {
+			for (; i < xml.length(); i++) {
+				if (xml.charAt(i) == '>') {
+					String begin = xml.substring(0, i + 1);
+					String end = xml.substring(i + 1, xml.length());
+					xml = begin.concat("\n").concat(end);
+					i++;
+					break;
+				}
+			}
+		}
+		
+		return xml;
+	}
+	
+	private static class DummyObserver implements IPlantCallbackReceiver {
+
+		private Queue<Result> inputQueue;
+		private Queue<PlantAdapterException> errorQueue; // TODO
+		
+		public DummyObserver() {
+			this.inputQueue = new LinkedList<Result>();
+		}
+		
+		public synchronized Result results() {
+			try {
+				if (this.inputQueue.peek() == null)
+					this.wait();
+				return this.inputQueue.poll();
+			}
+			catch (InterruptedException e) {
+				// TODO
+				throw new RuntimeException();
+			}
+		}
+		
+		@Override
+		public synchronized void sendInput(Result result) {
+			//System.out.println(formatXML(xml));
+			System.out.println(result.toString());
+			//
+			this.inputQueue.add(result);
+			this.notify();
+		}
+
+		@Override
+		public synchronized void sendError(PlantAdapterException exception) {
+			System.out.println(exception);
+		}
+	}
+}

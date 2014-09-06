@@ -1,0 +1,61 @@
+package plantadapter.inputs;
+
+import java.lang.reflect.Modifier;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import plantadapter.Configuration;
+import plantadapter.IPlant;
+import plantadapter.annotations.DeviceInfo;
+import plantadapter.communication.ISink;
+
+import plantmodel.Device;
+
+import utils.refl.ReflectionHelper;
+import utils.refl.filters.SubClassTypeFilter;
+
+public class InputRecognizerFactory {
+
+	private static Map<Class<? extends Device>, Class<? extends ISink<byte[]>>> typesMap = 
+			new HashMap<Class<? extends Device>, Class<? extends ISink<byte[]>>>();
+	
+	static
+	{
+		ReflectionHelper deviceReflector = new ReflectionHelper(Configuration.DEVICES_PACKAGES);
+		
+		for (Class<? extends Device> devType : deviceReflector.getTypes(new SubClassTypeFilter<Device>(Device.class))) {
+			if (!Modifier.isAbstract(devType.getModifiers())) { // TODO AbstractClassTypeFilter...
+				DeviceInfo devInfo = devType.getAnnotation(DeviceInfo.class);
+				if (devInfo != null)
+					typesMap.put(devType, devInfo.deviceInputRecognizerClass());
+			}
+		}
+	}
+
+	private final Map<Device, ISink<byte[]>> instancesMap;
+	private final IPlant plant;
+	
+	public InputRecognizerFactory(IPlant plant) {
+		this.instancesMap = new HashMap<Device, ISink<byte[]>>();
+		this.plant = plant;
+		
+	}
+	
+	public ISink<byte[]> getInputRecognized(Device device) {
+		if (this.instancesMap.containsKey(device))
+			return this.instancesMap.get(device);
+		else
+		{
+			try 
+			{
+				ISink<byte[]> ir = typesMap.get(device.getClass()).getConstructor(IPlant.class, device.getClass()).newInstance(this.plant, device);
+				this.instancesMap.put(device, ir);
+				return ir;
+			} 
+			catch (Exception e) {
+				throw new RuntimeException(e); // TODO
+			}
+		}
+	}
+}

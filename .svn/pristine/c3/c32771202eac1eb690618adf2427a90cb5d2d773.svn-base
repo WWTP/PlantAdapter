@@ -1,0 +1,22 @@
+package quantities;
+
+import javax.measure.quantity.Quantity;
+
+import quantities.DigitalQuantity.BinaryQuantity;
+
+public class BinaryAmount extends DigitalAmount implements IAmount {
+	
+	public BinaryAmount(boolean level) {
+		super(level ? 1 : 0, BinaryQuantity.QUANTITY);
+	}
+	
+	public BinaryAmount(int level) {
+		super(level, BinaryQuantity.QUANTITY);
+	}
+	
+	@Override
+	public Class<? extends Quantity> getQuantity()
+	{
+		return DigitalQuantity.class;
+	}
+}

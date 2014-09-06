@@ -1,0 +1,85 @@
+/**
+ * 
+ */
+package plantmodel.dt80;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import javax.measure.quantity.Quantity;
+
+import plantmodel.Endpoint;
+import plantmodel.AnalogueEndpointInterface;
+
+/**
+ * Tiene traccia degli Span definiti nel sistema e di come sono relazionati con EndpointInterfaces
+ */
+public class DT80DefinedSpanMapper {
+	private Map<Endpoint, Set<HWScalingEntry>> spans = new HashMap<Endpoint, Set<HWScalingEntry>>();
+	
+	public void add(Endpoint endpoint, AnalogueEndpointInterface endpointInterface, DT80Span span){
+		HWScalingEntry entry = new HWScalingEntry(endpointInterface, span);
+		if(spans.containsKey(endpoint))
+			spans.get(endpoint).add(entry);
+		else{
+			Set<HWScalingEntry> set = new HashSet<HWScalingEntry>();
+			set.add(entry);
+			spans.put(endpoint, set);
+		}
+	}
+	
+	/**
+	 * Ritorna lo Span associato all'Endpoint specificato che converta la Quantity passata
+	 * @param endpoint
+	 * @param quantity
+	 * @return Ritorna lo Span associato all'Endpoint specificato che converta la Quantity passata, null se non definito
+	 */
+	public DT80Span getSpan(Endpoint endpoint, Class<? extends Quantity> quantity){
+		if(spans.containsKey(endpoint))
+			for(HWScalingEntry entry : spans.get(endpoint))
+				if(entry.endpointInterface.getQuantity().equals(quantity))
+					return entry.span;
+		return null;
+	}
+	
+	/**
+	 * Ritorna tutti gli Span associati all'Endpoint specificato
+	 * @param endpoint
+	 * @return
+	 */
+	public DT80Span[] getSpans(Endpoint endpoint){
+		DT80Span[] spans = new DT80Span[this.spans.get(endpoint).size()];
+		int i = 0;
+		for(HWScalingEntry entry : this.spans.get(endpoint))
+			spans[i++] = entry.span;
+		return spans;
+	}
+	
+	/**
+	 * Ritorna tutte le EndpointInterface associate all'Endpoint specificato
+	 * @param endpoint
+	 * @return
+	 */
+	public AnalogueEndpointInterface[] getEndpointInterfaces(Endpoint endpoint){
+		AnalogueEndpointInterface[] endpointInterfaces = new AnalogueEndpointInterface[this.spans.get(endpoint).size()];
+		int i = 0;
+		for(HWScalingEntry entry : this.spans.get(endpoint))
+			endpointInterfaces[i++] = entry.endpointInterface;
+		return endpointInterfaces;
+	}
+	
+	/**
+	 * Correlazione tra EndpointInterface e Span definito nel DT80
+	 */
+	private class HWScalingEntry{
+		private AnalogueEndpointInterface endpointInterface;
+		private DT80Span span;
+		
+		public HWScalingEntry(AnalogueEndpointInterface endpointInterface, DT80Span span){
+			this.endpointInterface = endpointInterface;
+			this.span = span;
+		}
+	}
+}

@@ -1,0 +1,43 @@
+package tests.testbench;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.UUID;
+
+import plantadapter.PlantAdapter;
+import plantadapter.commands.ReadCommand;
+import plantadapter.excpts.CommandFailureException;
+import plantadapter.excpts.PlantConfigurationException;
+import plantmodel.Endpoint;
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Utils.Info.ScheduleIds;
+import plants.MulePlant;
+import quantities.ORP;
+
+import testbench.IPServerActivationThread;
+import testbench.PlantAdapterTestbench;
+import utils.PlantObserver;
+
+public class Testbench {
+
+	/**
+	 * @param args
+	 * @throws IOException 
+	 * @throws PlantConfigurationException 
+	 * @throws InterruptedException 
+	 * @throws CommandFailureException 
+	 */
+	public static void main(String[] args) throws IOException, PlantConfigurationException, InterruptedException, CommandFailureException {
+		
+		IPServerActivationThread serverActivator = new IPServerActivationThread();		
+		PlantAdapterTestbench tb = new PlantAdapterTestbench(serverActivator);
+		//
+		MulePlant plant = new MulePlant(serverActivator.getServerInetAddres().getHostName(), serverActivator.getServerLocalPort());
+		PlantAdapter p = PlantAdapter.newInstance(plant.getId(), plant.getDevices(), new PlantObserver(System.out, System.err));
+		//
+		ReadCommand r = new ReadCommand(UUID.randomUUID().toString(), Endpoint.fromID("orp_anox", "source"), ORP.class);
+		p.sendCommand(r);
+		System.out.println(ASCIIString.fromByteArray(tb.getCommandChecker().getCommand()));
+		tb.getInputGenerator().input(ScheduleIds.IMMEDIATE, 10);
+	}
+}

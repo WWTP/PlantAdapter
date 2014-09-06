@@ -1,0 +1,36 @@
+package tests.plantadapter;
+
+import java.io.IOException;
+import java.io.OutputStream;
+
+import plantmodel.datatypes.ASCIIString;
+import plantmodel.dt80.DT80Utils;
+
+public class InputGenerator {
+
+	private OutputStream os;
+	
+	/**
+	 * 
+	 * @param os <code>PipedOutputStream</code> collegato al <code>PipedInputStream</code> sul quale gli <i>input</i> devono essere ricevuti
+	 * @param interval
+	 */
+	public InputGenerator(OutputStream os) {
+		this.os = os;
+	}
+	
+	public synchronized void input(DT80Utils.Info.ScheduleIds schedule, Object... values) throws IOException {
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("D,089401,\"29_03_12\",2012/05/19,14:07:00,0.000366,0;" + schedule.getDT80Syntax() + ",0,");
+		for (Object v : values) {
+			sb.append(v.toString());
+			sb.append(',');
+		}
+		sb.deleteCharAt(sb.lastIndexOf(","));
+		sb.append(";0170;4D46");
+		sb.append("\r\n");
+		
+		this.os.write(ASCIIString.fromString((sb.toString())).toByteArray());
+	}
+}

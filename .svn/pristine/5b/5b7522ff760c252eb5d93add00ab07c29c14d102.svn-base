@@ -1,0 +1,86 @@
+package plantadapter;
+
+import java.lang.reflect.Constructor;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import plantadapter.annotations.CommandInfo;
+
+import plantadapter.commands.Command;
+import plantadapter.communication.ISink;
+import plantadapter.excpts.CommandFailureException;
+
+import utils.refl.ReflectionHelper;
+import utils.refl.filters.HasAnnotationTypeFilter;
+
+class PlantCommandRecognizer implements ISink<Command> {
+	
+	private static Map<Class<?>, CommandInfo> knownCommandClasses; // TODO Class<? extends Command>
+	
+	static 
+	{
+		ReflectionHelper reflector = new ReflectionHelper(Configuration.COMMANDS_PACKAGES); 
+		HasAnnotationTypeFilter filter = new HasAnnotationTypeFilter(CommandInfo.class);
+		// TODO DerivedClassFileFilter
+		Set<Class<?>> classes = reflector.getTypes(filter);
+		
+		knownCommandClasses = new HashMap<Class<?>, CommandInfo>();
+		
+		for (Class<?> commandType : classes) {
+			knownCommandClasses.put(commandType, commandType.getAnnotation(CommandInfo.class));
+		}
+	}
+	
+	private IPlant plant;
+	
+	private Map<Class<?>, ISink<Command>> commandExecutors;
+	
+	public PlantCommandRecognizer(IPlant plant) {
+		
+		this.plant = plant;
+		this.commandExecutors = new HashMap<Class<?>, ISink<Command>>();
+	}
+	
+	private ISink<Command> getExecutor(CommandInfo info) {
+		
+		ISink<Command> executor = this.commandExecutors.get(info.commandExecutorClass());
+		
+		if (executor == null) {
+			try 
+			{
+				Constructor<? extends ISink<Command>> executorConstructor = info.commandExecutorClass().getConstructor(IPlant.class);
+				executor = executorConstructor.newInstance(this.plant);
+				this.commandExecutors.put(info.commandExecutorClass(), executor);
+			} 
+			catch (Exception e) {
+				throw new RuntimeException(); // TODO
+			}
+		}
+		
+		return executor;
+	}
+	
+	@Override
+	public void put(Command cmd) throws IllegalStateException, CommandFailureException {
+		
+		try 
+		{
+			this.getExecutor(knownCommandClasses.get(cmd.getClass())).put(cmd);
+		} 
+		catch (Exception e) {
+			// TODO Verificare un modo per limitare le eccezioni (!)
+		}
+		
+		/*
+		AbstractExecutor<Command> executor = (AbstractExecutor<Command>) this.getExecutor(knownCommandClasses.get(cmd.getClass())); // TODO
+		
+		if (executor == null)
+			throw new IllegalStateException(); // TODO
+		
+		executor.setItem(cmd);
+		executor.execute();
+		*/
+	}
+}

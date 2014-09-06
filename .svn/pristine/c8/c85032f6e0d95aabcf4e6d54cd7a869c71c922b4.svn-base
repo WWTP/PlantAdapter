@@ -1,0 +1,27 @@
+package plantadapter.dcgs.impl.misc;
+
+import plantadapter.commands.PortCommand;
+import plantadapter.commands.WriteCommand;
+import plantadapter.dcgs.AbstractCommandBuilder;
+import plantadapter.dcgs.IDeviceCommandBuilder;
+
+import plantmodel.misc.ActuableDevice;
+
+import quantities.IAmount;
+
+public class ActuableWriteCommandBuilder extends AbstractCommandBuilder<ActuableDevice, WriteCommand> implements IDeviceCommandBuilder {
+
+	public ActuableWriteCommandBuilder(ActuableDevice executorDevice,
+			WriteCommand originalCommand) {
+		super(executorDevice, originalCommand);
+	}
+
+	@Override
+	public PortCommand buildCommand() {
+		
+		// TODO Aggiungere conversione tramite DeviceAmountConverter (quando saranno supportati Command con associati originalCommand e la possibilità di convertire il valore originale se trovata una EndpointInterface che la supporti nativamente)
+		IAmount value = super.getOriginalCommand().getValue();
+		
+		return new WriteCommand(super.getOriginalCommand().getCommandID(), super.getOriginalCommand().getTimestamp(), super.getExecutorDevice().getSlaveEndpoints()[0], value);
+	}
+}

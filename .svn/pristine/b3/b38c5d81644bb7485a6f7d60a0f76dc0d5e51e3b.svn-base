@@ -1,0 +1,10 @@
+package plantmodel;
+
+/**
+ * Indica la direzione con cui si sta operando in IO
+ */
+public enum IODirection {
+	INPUT,
+	OUTPUT,
+	BOTH
+}

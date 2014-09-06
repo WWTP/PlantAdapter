@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="plantadapter/model/data/qty/rip/|plantadapter/structure/schedules/SystemScheduleConfiguration.java|tests/plantadapter/DummyInputStream.java|tests/plantadapter/DummyOutputStream.java|tests/plantadapter/DummyCommunicationManager.java|plantmodel/dt80/DT80AnalogueEndpointMapper.java" kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry exported="true" kind="lib" path="lib/extree.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/xmld.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/utils.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry exported="true" kind="lib" path="lib/jscience.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

@@ -1,0 +1,183 @@
+package plantmodel.adam;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import javax.measure.quantity.Quantity;
+import javax.measure.unit.Unit;
+
+import org.jscience.physics.amount.Amount;
+
+import plantadapter.annotations.DeviceInfo;
+import plantadapter.dcgs.impl.Adam5000DeviceCommandGenerator;
+import plantadapter.excpts.EndpointNotFoundException;
+import plantadapter.parsers.impl.Adam5000InputParser;
+import plantadapter.utils.LinearScalingTransformation;
+import plantadapter.utils.ScalingTransformation;
+import plantmodel.Device;
+import plantmodel.Endpoint;
+import plantmodel.EndpointInterface;
+import plantmodel.datatypes.ASCIIString;
+
+// NOTA BENE: sull'ID dell'Endpoint si basa anche la configurazione degli Slot & Channel dell'Endpoint stesso
+
+@DeviceInfo
+(
+	deviceCommandGeneratorClass = Adam5000DeviceCommandGenerator.class,
+	deviceInputParserClass = Adam5000InputParser.class
+	// TODO Aggiungere InputRecognizer (?)
+)
+public class Adam5000Device extends Device {
+	
+	private static EndpointInterface getEndpointInterface(Class<? extends Quantity> q){
+		Unit<? extends Quantity> unit = null;
+		Amount<? extends Quantity> min = null;
+		Amount<? extends Quantity> max = null;
+		ScalingTransformation transformation = null;
+		if(q.equals(javax.measure.quantity.ElectricPotential.class)){
+			unit = javax.measure.quantity.ElectricPotential.UNIT;
+			min = Amount.valueOf("0 V");
+			max = Amount.valueOf("10 V");
+			transformation = LinearScalingTransformation.IDENTITY;
+		}
+		else if(q.equals(javax.measure.quantity.ElectricCurrent.class)){
+			unit = javax.measure.quantity.ElectricCurrent.UNIT;
+			min = Amount.valueOf("4 mA");
+			max = Amount.valueOf("20 mA");
+			transformation = new LinearScalingTransformation(0.001, 0); // milli Ampere
+		}
+		return new EndpointInterface(q, unit, min, max, transformation);
+	}
+	
+	// TODO Gestito IL solo Slot attualmente in uso (5024)
+	// TODO Per una corretta modellazione occorrerebbe creare una classe a parte per ogni modello di slot.
+	private static void addCurrentEndpoints(Collection<Endpoint> endpoints, int HWNetworkAddress){
+		for(int i = 0; i < 4; i++)
+			endpoints.add(new Endpoint(((HWNetworkAddress < 10) ? "0" + HWNetworkAddress : HWNetworkAddress) + "S0C" + i + "Current", getEndpointInterface(javax.measure.quantity.ElectricCurrent.class)));
+	}
+	
+	private static void addVoltageEndpoints(Collection<Endpoint> endpoints, int HWNetworkAddress){
+		for(int i = 0; i < 4; i++)
+			endpoints.add(new Endpoint(((HWNetworkAddress < 10) ? "0" + HWNetworkAddress : HWNetworkAddress) + "S0C" + i + "Voltage", getEndpointInterface(javax.measure.quantity.ElectricPotential.class)));
+	}
+	
+	private synchronized static Endpoint[] setupEndpoints(int HWNetworkAddress) {
+		// TODO
+		// TODO Attualmente Gestita SOLO Impostazione fissa in Corrente
+		List<Endpoint> endpoints = new ArrayList<Endpoint>();
+		Adam5000Device.addCurrentEndpoints(endpoints, HWNetworkAddress);
+		Adam5000Device.addVoltageEndpoints(endpoints, HWNetworkAddress);
+		
+		endpoints.add(new Endpoint("RS232", new EndpointInterface(javax.measure.quantity.DataAmount.class, javax.measure.quantity.DataAmount.UNIT, null, null, null)));
+		
+		return endpoints.toArray(new Endpoint[0]);
+	}
+	
+	private int HWNetworkAddress;
+	private Endpoint[] activeEndpoints;
+	
+//	/**
+//	 * Cache utilizzata per ricavarsi dall'<code>Endpoint</code> numero di Slot e numero di Canale dell'ADAM (mapping HW - SW) altrimenti ricavabile da ID
+//	 */
+//	// TODO Probabilmente ha più senso al contrario... ma verrebbe usata?
+//	private Map<Endpoint, AdamEndpointKey> endpointMappingCache;
+	
+	public Adam5000Device(String id, String serialNumber, int HWNetworkAddress) {
+		super(id, "Compact Field Point", "Advantech", "Adam", "5000", serialNumber, setupEndpoints(HWNetworkAddress), ASCIIString.class);
+		
+		if(HWNetworkAddress >= 64) // TODO verificare
+			throw new IllegalArgumentException();
+		this.HWNetworkAddress = HWNetworkAddress;
+		this.activeEndpoints = super.getEndpoints(javax.measure.quantity.ElectricCurrent.class); // Considerati attivi SOLO gli endpoint in corrente dello Slot 5024
+	}
+	
+	/**
+	 * Returns the Hardware Network Address setted
+	 * @return Hardware Network Address
+	 */
+	public int getHWNetworkAddress(){
+		return this.HWNetworkAddress;
+	}
+	
+	public void setHWNetworkAddress(int HWNetworkAddress){
+		if(HWNetworkAddress >= 64) // TODO verificare
+			throw new IllegalArgumentException();
+		this.HWNetworkAddress = HWNetworkAddress;
+	}
+	
+	/**
+	 * Check if the <code>Endpoint</code> is actually active
+	 * @param endpoint <code>Endpoint</code> to be checked
+	 * @return <code>true</code> if active, <code>false</code> otherwise
+	 */
+	public boolean isActive(Endpoint endpoint){
+		for(Endpoint e : this.activeEndpoints)
+			if(e.equals(endpoint))
+				return true;
+		return false;
+	}
+	
+	public int getSlotNumber(Endpoint e) throws EndpointNotFoundException{
+		// Precondizione - controllo se Endpoint è associato a questo Device
+		if(!super.contains(e))
+			throw new EndpointNotFoundException(e.getID() + " not in " + this.toString());
+				
+//		// Restituisco se in Cache
+//		if(this.endpointMappingCache.containsKey(e))
+//			return this.endpointMappingCache.get(e).slotNumber;
+		// Parsing ID
+		//return Integer.parseInt(e.getID().substring(0, 2));
+		return Integer.parseInt(e.getID().charAt(3) + "");
+	}
+	
+	public int getChannelNumber(Endpoint e) throws EndpointNotFoundException{
+		// Precondizione - controllo se Endpoint è associato a questo Device
+		if(!super.contains(e))
+			throw new EndpointNotFoundException(e.getID() + " not in " + this.toString());
+		
+//		// Restituisco se in Cache
+//		if(this.endpointMappingCache.containsKey(e))
+//			return this.endpointMappingCache.get(e).channelNumber;
+		// Parsing ID
+		return Integer.parseInt(e.getID().charAt(5) + "");
+	}
+	
+	/**
+	 * Ritorna la stringa di riferimento per accedere all'endpoint (da usare nei comandi)
+	 * @param e
+	 * @return
+	 * @throws EndpointNotFoundException 
+	 */
+	public String getEndpointDeviceID(Endpoint e) throws EndpointNotFoundException{
+		// Precondizione - controllo se Endpoint è associato a questo Device
+		if(!super.contains(e))
+			throw new EndpointNotFoundException(e.getID() + " not in " + this.toString());
+				
+		return "#" +  e.getID().substring(0, 6);
+	}
+	
+	/**
+	 * Ritorna l'Endpoint attivo attualmente sullo Slot e Channel specificato 
+	 * @param slotNumber
+	 * @param channelNumber
+	 * @return Endpoint attivo attualmente sullo Slot e Channel specificato, null se inattivo o non presente
+	 */
+	public Endpoint getActiveEndpoint(int slotNumber, int channelNumber){
+		// TODO Precondizione su slotNumber e channelNumber
+		for(Endpoint e : this.activeEndpoints)
+			if(e.getID().substring(0, 6).equals(((this.HWNetworkAddress < 10) ? "0" + this.HWNetworkAddress : this.HWNetworkAddress) + "S" + slotNumber + "C" + channelNumber))
+				return e;
+		return null;
+	}
+	
+//	private class AdamEndpointKey{
+//		private final int slotNumber;
+//		private final int channelNumber;
+//		
+//		public AdamEndpointKey(int slotNumber, int channelNumber){
+//			this.slotNumber = slotNumber;
+//			this.channelNumber = channelNumber;
+//		}
+//	}
+}

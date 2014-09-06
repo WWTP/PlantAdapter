@@ -1,0 +1,170 @@
+package plantadapter.inputs.recogs;
+
+import java.util.NoSuchElementException;
+
+import plantadapter.IPlant;
+import plantadapter.communication.ISink;
+import plantadapter.inputs.immediate.DT80ReadResponseHandler;
+import plantadapter.inputs.scheduled.DT80ScheduleHandler;
+
+import plantmodel.datatypes.ASCIIString;
+
+import plantmodel.dt80.DT80Device;
+import plantmodel.dt80.DT80Utils;
+import plantmodel.dt80.DT80Utils.Info.FixedFormatFields;
+import plantmodel.dt80.DT80Utils.Info.RecordClasses;
+import plantmodel.dt80.DT80Utils.Info.RecordTypes;
+import plantmodel.dt80.DT80Utils.Info.ScheduleIds;
+
+/* TODO Verifica bene a chi avviene il passaggio delle risposte e 
+ * da dove provengono eventuali risorse condivise (ad esempio la coda
+ * delle richieste pendenti). Può avere senso un approccio diverso in base
+ * alla presenza di queste ultime? Notare che ciò influisce anche sulla parte
+ * di invio!!!
+ */
+
+public class DT80InputRecognizer implements ISink<byte[]> {
+
+	/* TODO Il ResponseRecognizer potrebbe in realtà delegare ad un "parser"
+	 * la discriminazione fra i tipi di input. Ciò permetterebbe una maggiore
+	 * divisione dei compiti. Ciò comunque non dovrebbe essere un'imposizione 
+	 * "struttuale" ma una scelta implementativa (teoricamente l'algoritmo
+	 * potrebbe essere semplicemente "cablato" nei metodi qui sotto).
+	 * 
+	 * Questo "parser" NON dovrebbe essere un IResponseParser (al massimo una sua
+	 * estensione), in quanto non è detto che ogni IResponseParser debba essere in grado
+	 * di discriminare tra i vari tipi di input (ciò non ha ad esempio senso nel 
+	 * caso di un ADAM).
+	 */
+	
+	private static boolean isSchedule(ASCIIString input) {
+		RecordTypes recordType = RecordTypes.parse(DT80Utils.readFixedFormat(input, FixedFormatFields.RECORD_TYPE)); // TODO Controllo all'interno?
+		ScheduleIds schedId = ScheduleIds.parse(DT80Utils.readFixedFormat(input, FixedFormatFields.SCHEDULE));
+		if (recordType == null || schedId == null)
+			throw new IllegalStateException(); // TODO Obbliga il catch/verifica questa possibilità...
+		if (recordType == RecordTypes.RealTimeData && schedId != ScheduleIds.IMMEDIATE)
+			return true;
+		else return false;
+	}
+	
+	private static boolean isReadResponse(ASCIIString input) {
+		RecordTypes recordType = RecordTypes.parse(DT80Utils.readFixedFormat(input, FixedFormatFields.RECORD_TYPE)); // TODO Controllo all'interno?
+		ScheduleIds schedId = ScheduleIds.parse(DT80Utils.readFixedFormat(input, FixedFormatFields.SCHEDULE));
+		if (recordType == null || schedId == null)
+			throw new IllegalStateException(); // TODO Obbliga il catch/verifica questa possibilità...
+		if (recordType == RecordTypes.RealTimeData && schedId == ScheduleIds.IMMEDIATE)
+			return true;
+		else return false;
+	}
+	
+	/**
+	 * Alcuni codici noti:
+	 * <ul>
+	 * <li><code>0057</code></li>: record di controllo, come echo di comandi o stato (i.e. successo, timeout, ...) di una lettura effettuata da una porta seriale;
+	 * <li><code>0063</code></li>: record di dato veri e propri, come risultati di una lettura immediata (e.g. da un canale analogico);
+	 * <li><code>0067</code></li>: record di dato veri e propri, come risultati di una lettura immediata (e.g. lettura di una variabile stringa del DT80);
+	 * <li><code>0151</code></li>: record di dato contenenti i risultati di una schedule.
+	 * </ul>
+	 * @param input
+	 * @return
+	 */
+	private static boolean allowedCode(ASCIIString input) {
+		int code = Integer.parseInt(DT80Utils.readFixedFormat(input, FixedFormatFields.CODE));
+		
+		switch (code) 
+		{
+			case 63: return true; // dati immediati (lettura canali analogici);
+			case 67: return true; // dati immediati (lettura variabili stringa);
+			case 151: return true; // dati schedules
+			
+			default: return false;
+		}
+		
+	}
+	
+	/* TODO notare che non usa sempre le stesse istanze ma ne crea una nuova per ogni risposta,
+	 * la scelta è stata fatta in quanto questa volta non si tratta di un singleton e quindi
+	 * più istanza collegate a DT80 diversi utilizzerebbero comunque istanza diverse dei vari
+	 * IResponseHandler. Volendo ci si potrebbe appoggiare su una factory esterna che renda comuni
+	 * ai vari IResponseRecognizer (per un certo dispositivo) tutti i ResponseHandler presenti
+	 * (pattern FlyWeight). Ciò può essere problematico in caso di modifiche dello stato interno
+	 * degli IResponseHandler e va quindi considerato attentamente.
+	 * 
+	 */
+	
+	private IPlant plant;
+	private DT80Device dt80;
+	
+	// TODO
+	public DT80InputRecognizer(IPlant plant, DT80Device dt80) {
+		this.plant = plant;
+		this.dt80 = dt80;
+	}
+
+	@Override
+	public void put(byte[] message) throws Exception {
+		
+		ASCIIString inputString = ASCIIString.fromByteArray(message);
+		ISink<ASCIIString> handler;
+		
+		// Considero solo record contenenti dati...
+		RecordClasses recordClass;
+		
+		try 
+		{
+			recordClass = RecordClasses.parse(DT80Utils.readFixedFormat(inputString, FixedFormatFields.RECORD_CLASS));
+		}
+		catch (NoSuchElementException e) { // TODO Si verifica quando arriva in input qualcosa di imprevisto/non gestito (es. "2SERIAL 0 State")
+			recordClass = null;
+		}
+
+		// TODO L'espressività del fixed format del DT80 mi permette di scartare nel semplice modo seguente
+		// tutti i dati che non sono di interesse (ad esempio posso discriminare immediatamente il record
+		// che restituisce lo stato della lettura effettuata dalla porta seriale da un record contenente dati),
+		// però non è detto che tutti i dispositivi abbiano un output così espressivo: in generale potrebbe
+		// occorrere una maggiore conoscenza dei comandi effettivamente inviati in modo da poter associare
+		// ad essi tutti i risultati ottenuti e poter conservare solo quelli significativi.
+		
+		// Nel caso di record contenenti dati, verifico che il particolare codice
+		// (e.g. echo di comandi, stato di ritorno delle letture) sia supportato.
+		if (recordClass == RecordClasses.DATA && allowedCode(inputString)) {	
+			
+			if (isSchedule(inputString)) {
+				handler = new DT80ScheduleHandler(this.dt80);
+			}
+			else if (isReadResponse(inputString)) {
+				// TODO Lo crea o lo ottiene da una Factory (?)
+				handler = new DT80ReadResponseHandler(this.dt80, this.plant);
+			}
+			// TODO Presenti altri tipi di input da gestire?
+			else 
+			{
+				handler = new ISink<ASCIIString>() {
+
+					@Override
+					public void put(ASCIIString message) throws Exception {
+
+					}
+				};
+			}
+			
+			handler.put(inputString);
+		}
+		// else do nothing
+	}
+
+	/*
+	@Override
+	public IInputHandler getInputHandler(byte[] input) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	*/
+
+	/*
+	@Override
+	public IDataFormatDescriptor getInputFormatDescriptor() {
+		return InputFormatDescriptor.getInstance(); // TODO Implementa e verifica annidamento dei tipi...
+	}
+	*/
+}

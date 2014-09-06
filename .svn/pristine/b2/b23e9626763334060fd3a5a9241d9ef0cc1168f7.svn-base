@@ -1,0 +1,18 @@
+package quantities;
+
+public class DigitalQuantity implements IDigitalQuantity {
+	/**
+	 * Numero di livelli che la grandezza digitale può assumere
+	 */
+	private int levels;
+	
+	public DigitalQuantity(int levels){
+		this.levels = levels;
+	}
+	
+	@Override
+	public int getLevels()
+	{
+		return this.levels;
+	}
+}
