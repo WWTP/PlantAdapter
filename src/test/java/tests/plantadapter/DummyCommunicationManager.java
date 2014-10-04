@@ -7,10 +7,10 @@ import plantadapter.CommunicationFactory;
 import plantadapter.ICommunicationManager;
 
 
-import plantadapter.com.ISink;
-import plantadapter.com.ISource;
-import plantadapter.com.impl.CommandSenderImpl;
-import plantadapter.com.impl.InputSourceImpl;
+import plantadapter.communication.ISink;
+import plantadapter.communication.ISource;
+import plantadapter.communication.impl.CommandSenderImpl;
+import plantadapter.communication.impl.InputSourceImpl;
 import plantadapter.commands.WriteCommand;
 
 import plantadapter.excpts.ConnectionNotFoundException;
