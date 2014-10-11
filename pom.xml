@@ -22,25 +22,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>utils</groupId>
-			<artifactId>utils</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${pom.basedir}/lib/utils.jar</systemPath>
-		</dependency>
-		<dependency>
 			<groupId>extree</groupId>
 			<artifactId>extree</artifactId>
 			<version>1.0</version>
 			<scope>system</scope>
 			<systemPath>${pom.basedir}/lib/extree.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>xmld</groupId>
-			<artifactId>xmld</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${pom.basedir}/lib/xmld.jar</systemPath>
 		</dependency>
 	</dependencies>
 

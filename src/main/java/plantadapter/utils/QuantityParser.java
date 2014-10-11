@@ -36,7 +36,7 @@ import utils.refl.ReflectionHelper;
 import utils.refl.filters.SubInterfaceTypeFilter;
 import utils.refl.filters.InterfaceTypeFilter;
 
-import xmld.XMLData;
+//import xmld.XMLData;
 
 public class QuantityParser {
 
@@ -136,79 +136,80 @@ public class QuantityParser {
 		return null;
 	}
 	
-	public IAmount parseAmount(Element e) {
-		
-		XMLData amount = XMLData.fromNode(e);
-		
-		// TODO Gestione Amount non analogici...
-		
-		try 
-		{
-			// TODO Uso reflection per andare a prendere tutte le implementazioni di Quantity e fare il test su quelle...
-			if (amount.dom("amount/quantity").equalsIgnoreCase("ElectricCurrent")) {
-				String amountStr = amount.dom("amount/value") + " " +  amount.dom("amount/unit");
-				
-				@SuppressWarnings("unchecked")
-				IAmount amnt = new AnalogueAmount(ElectricCurrent.class, (Amount<ElectricCurrent>)Amount.valueOf(amountStr));
-				
-				return amnt;
-			}
-			// TODO Altri casi...
-			else if (amount.dom("amount/quantity").equalsIgnoreCase("DataAmount")) {
-				return new InformationAmount(ASCIIString.fromString(amount.dom("amount/value")).toByteArray()); // TODO Gestione formati diversi da ASCII...
-			}
-		} 
-		catch (XPathExpressionException e1) { throw new RuntimeException(); /* TODO */ }
-		
-		return null;
-	}
+	
+//	public IAmount parseAmount(Element e) {
+//		
+//		XMLData amount = XMLData.fromNode(e);
+//		
+//		// TODO Gestione Amount non analogici...
+//		
+//		try 
+//		{
+//			// TODO Uso reflection per andare a prendere tutte le implementazioni di Quantity e fare il test su quelle...
+//			if (amount.dom("amount/quantity").equalsIgnoreCase("ElectricCurrent")) {
+//				String amountStr = amount.dom("amount/value") + " " +  amount.dom("amount/unit");
+//				
+//				@SuppressWarnings("unchecked")
+//				IAmount amnt = new AnalogueAmount(ElectricCurrent.class, (Amount<ElectricCurrent>)Amount.valueOf(amountStr));
+//				
+//				return amnt;
+//			}
+//			// TODO Altri casi...
+//			else if (amount.dom("amount/quantity").equalsIgnoreCase("DataAmount")) {
+//				return new InformationAmount(ASCIIString.fromString(amount.dom("amount/value")).toByteArray()); // TODO Gestione formati diversi da ASCII...
+//			}
+//		} 
+//		catch (XPathExpressionException e1) { throw new RuntimeException(); /* TODO */ }
+//		
+//		return null;
+//	}
 	
 	public String toString(IAmount a) {
 		// TODO
 		return null;
 	}
 	
-	public Element toElement(IAmount a) {
-		
-		XMLData xml = null;
-		
-		// TODO Gestion Amount non analogici...
-
-		try 
-		{
-			if (a instanceof AnalogueAmount) {
-				xml = new XMLData("amount");
-					
-				AnalogueAmount amount = (AnalogueAmount)a;
-				
-				xml.dom("/amount/quantity=" + amount.getQuantity().getSimpleName());
-				xml.dom("/amount/value=" + amount.getAmount().getEstimatedValue());
-				xml.dom("/amount/unit=" + amount.getAmount().getUnit()); // TODO Verifica problema �C (?)
-			}
-			else if (a instanceof InformationAmount) { // TODO Per ora usato ASCII, vedere come fare per consentire altre codifiche...
-				xml = new XMLData("amount");
-				
-				InformationAmount amount = (InformationAmount)a;
-				
-				xml.dom("/amount/quantity=" + amount.getQuantity().getSimpleName());
-				xml.dom("/amount/value=" + ASCIIString.fromByteArray(amount.getBytes()));
-				xml.dom("/amount/unit=" + "ASCII"); // TODO Qui 'unit' assume significato di 'rappresentazione'...
-			}
-		}
-		catch (XPathExpressionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		if (xml == null)
-			throw new IllegalStateException("Amount non valido."); // TODO
-		
-		try 
-		{
-			return (Element)xml.toNode("amount");
-		} 
-		catch (XPathExpressionException e) {
-			throw new RuntimeException();
-		}
-	}
+//	public Element toElement(IAmount a) {
+//		
+//		XMLData xml = null;
+//		
+//		// TODO Gestion Amount non analogici...
+//
+//		try
+//		{
+//			if (a instanceof AnalogueAmount) {
+//				xml = new XMLData("amount");
+//					
+//				AnalogueAmount amount = (AnalogueAmount)a;
+//				
+//				xml.dom("/amount/quantity=" + amount.getQuantity().getSimpleName());
+//				xml.dom("/amount/value=" + amount.getAmount().getEstimatedValue());
+//				xml.dom("/amount/unit=" + amount.getAmount().getUnit()); // TODO Verifica problema �C (?)
+//			}
+//			else if (a instanceof InformationAmount) { // TODO Per ora usato ASCII, vedere come fare per consentire altre codifiche...
+//				xml = new XMLData("amount");
+//				
+//				InformationAmount amount = (InformationAmount)a;
+//				
+//				xml.dom("/amount/quantity=" + amount.getQuantity().getSimpleName());
+//				xml.dom("/amount/value=" + ASCIIString.fromByteArray(amount.getBytes()));
+//				xml.dom("/amount/unit=" + "ASCII"); // TODO Qui 'unit' assume significato di 'rappresentazione'...
+//			}
+//		}
+//		catch (XPathExpressionException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		if (xml == null)
+//			throw new IllegalStateException("Amount non valido."); // TODO
+//		
+//		try 
+//		{
+//			return (Element)xml.toNode("amount");
+//		} 
+//		catch (XPathExpressionException e) {
+//			throw new RuntimeException();
+//		}
+//	}
 }
