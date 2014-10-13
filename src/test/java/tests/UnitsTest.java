@@ -27,5 +27,6 @@ import org.junit.runners.Suite.SuiteClasses;
 	tests.model.ModelTest.class,
 	// Parsers // TODO
 	tests.parsers.dt80.readfixedformat.DT80ReadFixedFormatTest.class,
+	tests.utils.extree.ExtensibleTreeTest.class
 })
 public class UnitsTest {}

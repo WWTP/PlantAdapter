@@ -8,10 +8,11 @@ import org.junit.Test;
 
 import plantmodel.Connection;
 import plantmodel.Endpoint;
-
 import tests.dependencesolver.uut.DependenceSolverImpl;
 import tests.dependencesolver.uut.DeviceCommandGenerationList;
 import tests.dependencesolver.uut.IDependenceSolver;
+import tests.dummyimpl.DummyDevice;
+import tests.dummyimpl.DummyEndpoint;
 
 public class DependenceSolverTest {
 	
@@ -19,11 +20,11 @@ public class DependenceSolverTest {
 	public final void testConstuctor() throws ParserConfigurationException {
 		DummyDevice s1, s2, s3, d1, d2;
 		// Devices
-		s1 = new DummyDevice("S1", new DummyEndpoint("SLAVE"));
-		s2 = new DummyDevice("S2", new DummyEndpoint("SLAVE"));
-		s3 = new DummyDevice("S3", new DummyEndpoint("SLAVE"));
-		d1 = new DummyDevice("D1", new DummyEndpoint("MASTER_S1"), new DummyEndpoint("MASTER_D2"), new DummyEndpoint("SLAVE"));
-		d2 = new DummyDevice("D2", new DummyEndpoint("MASTER_S2"), new DummyEndpoint("MASTER_S3"), new DummyEndpoint("SLAVE"));
+		s1 = new DummyDevice("S1", "SLAVE");
+		s2 = new DummyDevice("S2", "SLAVE");
+		s3 = new DummyDevice("S3", "SLAVE");
+		d1 = new DummyDevice("D1", "MASTER_S1", "MASTER_D2", "SLAVE");
+		d2 = new DummyDevice("D2", "MASTER_S2", "MASTER_S3", "SLAVE");
 		// Connections (si associano automaticamente ai Devices)
 		new Connection(
 				Endpoint.fromID("D1", "MASTER_S1"), 
@@ -63,11 +64,11 @@ public class DependenceSolverTest {
 	public final void testUpdate() throws ParserConfigurationException {
 		DummyDevice s1, s2, s3, d1, d2;
 		// Devices
-		s1 = new DummyDevice("S1'", new DummyEndpoint("SLAVE"));
-		s2 = new DummyDevice("S2'", new DummyEndpoint("SLAVE"));
-		s3 = new DummyDevice("S3'", new DummyEndpoint("SLAVE"));
-		d1 = new DummyDevice("D1'", new DummyEndpoint("MASTER_S1"), new DummyEndpoint("MASTER_D2"), new DummyEndpoint("SLAVE"));
-		d2 = new DummyDevice("D2'", new DummyEndpoint("MASTER_S2"), new DummyEndpoint("MASTER_S3"), new DummyEndpoint("SLAVE"));
+		s1 = new DummyDevice("S1'", "SLAVE");
+		s2 = new DummyDevice("S2'", "SLAVE");
+		s3 = new DummyDevice("S3'", "SLAVE");
+		d1 = new DummyDevice("D1'", "MASTER_S1", "MASTER_D2", "SLAVE");
+		d2 = new DummyDevice("D2'", "MASTER_S2", "MASTER_S3", "SLAVE");
 		// Connections (si associano automaticamente ai Devices)
 		new Connection(
 				Endpoint.fromID("D1'", "MASTER_S1"), 

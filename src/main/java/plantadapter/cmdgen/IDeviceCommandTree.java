@@ -3,8 +3,7 @@ package plantadapter.cmdgen;
 import plantadapter.commands.DeviceCommand;
 import plantadapter.commands.WriteCommand;
 import plantadapter.commands.dev.IInputMask;
-
-import extree.NavigableTree;
+import utils.extree.NavigableTree;
 
 /* TODO Esplicitare il fatto che è un albero e il perché. Descriverne la struttura.
  * Le implementazioni devono inoltre garantire che si tratti EFFETTIVAMENTE

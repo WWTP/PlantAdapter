@@ -8,11 +8,11 @@ import java.util.Stack;
 import plantadapter.commands.DeviceCommand;
 import plantadapter.commands.ReadCommand;
 import plantadapter.commands.dev.IInputMask;
-
-import extree.ExtensibleTree;
-import extree.NavigableTree;
-import extree.TreeNavigator;
-import extree.TreeNode;
+import utils.extree.ExtensibleTree;
+import utils.extree.NavigableTree;
+import utils.extree.TreeNavigator;
+import utils.extree.TreeNavigator.NavigationMode;
+import utils.extree.TreeNode;
 
 public class DeviceCommandTreeBuilder {
 	

@@ -21,13 +21,6 @@
 			<version>4.11</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>extree</groupId>
-			<artifactId>extree</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${pom.basedir}/lib/extree.jar</systemPath>
-		</dependency>
 	</dependencies>
 
 </project>

@@ -1,4 +1,4 @@
-package tests.commandtreebuilder;
+package tests.dummyimpl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -7,7 +7,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import plantadapter.commands.DeviceCommand;
 import tests.commandtreebuilder.uut.IAggregatedDeviceCommand;
-import tests.dependencesolver.DummyDevice;
 
 public class DummyADC implements IAggregatedDeviceCommand {
 	

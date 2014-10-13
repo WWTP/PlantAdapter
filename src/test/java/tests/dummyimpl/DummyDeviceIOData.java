@@ -1,4 +1,4 @@
-package tests.dependencesolver;
+package tests.dummyimpl;
 
 import plantmodel.IDeviceIOData;
 

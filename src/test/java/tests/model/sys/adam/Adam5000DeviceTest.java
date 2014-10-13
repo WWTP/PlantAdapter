@@ -8,7 +8,7 @@ import org.junit.Test;
 import plantadapter.excpts.EndpointNotFoundException;
 import plantmodel.Endpoint;
 import plantmodel.adam.Adam5000Device;
-import tests.dependencesolver.DummyEndpoint;
+import tests.dummyimpl.DummyEndpoint;
 
 public class Adam5000DeviceTest {
 

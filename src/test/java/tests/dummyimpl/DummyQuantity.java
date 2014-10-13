@@ -1,4 +1,4 @@
-package tests.commandtreebuilder;
+package tests.dummyimpl;
 
 import javax.measure.quantity.Quantity;
 
